@@ -1,0 +1,6 @@
+ktor:
+  application:
+    modules:
+      - io.pranjal.ApplicationKt.module
+  deployment:
+    port: 5555
