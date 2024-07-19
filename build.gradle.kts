@@ -24,7 +24,7 @@ plugins {
 application {
     mainClass.set("io.pranjal.ApplicationKt")
 
-    val isDevelopment: Boolean = project.ext.has("development")
+    val isDevelopment: Boolean = if (System.getenv("LUIGI_ENVIRONMENT") == "production") false else true
     applicationDefaultJvmArgs = listOf("-Dio.ktor.development=$isDevelopment")
 
 }
@@ -41,17 +41,22 @@ dependencies {
     implementation("io.ktor:ktor-client-cio-jvm:3.0.0-beta-1")
     testImplementation("org.jetbrains.kotlin:kotlin-test")
 
-    implementation("io.ktor:ktor-server-core-jvm:$ktor_version")
+
+    implementation("io.ktor:ktor-server-html-builder:$ktor_version")
     implementation("io.ktor:ktor-server-netty-jvm:$ktor_version")
     implementation("io.ktor:ktor-client-core:$ktor_version")
     implementation("io.ktor:ktor-client-cio:$ktor_version")
     implementation("io.ktor:ktor-client-content-negotiation:$ktor_version")
+    implementation("io.ktor:ktor-server-content-negotiation:$ktor_version")
+
     implementation("io.ktor:ktor-serialization-kotlinx-json:$ktor_version")
     implementation("io.ktor:ktor-server-sse:$ktor_version")
     implementation("ch.qos.logback:logback-classic:$logback_version")
     implementation("io.ktor:ktor-server-config-yaml:$ktor_version")
+
     testImplementation("io.ktor:ktor-server-tests-jvm:$ktor_version")
-    testImplementation("org.jetbrains.kotlin:kotlin-test-junit:$kotlin_version")
+    testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.8.1")
+
 
     implementation("io.github.oshai:kotlin-logging-jvm:5.1.4")
     implementation("org.eclipse.paho:org.eclipse.paho.mqttv5.client:1.2.5")

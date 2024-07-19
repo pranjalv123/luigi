@@ -99,6 +99,9 @@ class Devices(mqttClient: MqttClient) {
     val sunroomDimmer = byId[Definitions.sunroomSwitch.id] as InovelliSwitch
     val walkInClosetDimmer = byId[Definitions.walkInClosetSwitch.id] as InovelliSwitch
 
+
+    fun initSwitches() {
+    }
     //val lights = kitchenLights + masterBedroomLights + sunroomLights + masterBathroomLights + walkInClosetLights
 
 }

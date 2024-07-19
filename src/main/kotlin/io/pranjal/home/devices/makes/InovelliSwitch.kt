@@ -10,6 +10,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.runBlocking
+import kotlin.time.Duration
 
 @OptIn(FlowPreview::class)
 class InovelliSwitch(definition: Definition, client: MqttClient) : Device(definition, client), Switch {
@@ -27,10 +28,13 @@ class InovelliSwitch(definition: Definition, client: MqttClient) : Device(defini
         override val location: Device.Definition.Location
     ) : Device.Definition
 
-    val logger = KotlinLogging.logger("Inovelli ${definition.name} [${definition.id}]")
+    private val logger = KotlinLogging.logger("Inovelli ${definition.name} [${definition.id}]")
 
     fun setSmartbulbMode() {
         runBlocking { setValue("smartBulbMode", "Smart Bulb Mode") }
+    }
+    fun setButtonDelay(duration: Duration) {
+        runBlocking { setValue("buttonDelay", duration.inWholeMilliseconds.toString()) }
     }
 
     override suspend fun turnOn(scope: CoroutineScope): Flow<Unit> =
@@ -44,4 +48,10 @@ class InovelliSwitch(definition: Definition, client: MqttClient) : Device(defini
 
     override suspend fun decreaseBrightness(scope: CoroutineScope): Flow<Unit> =
         onAction("down_single", scope).onEach { logger.info { "Got decrease brightness press" } }.map { Unit }
+    override suspend fun toggle(scope: CoroutineScope): Flow<Unit> =
+        onAction("up_down", scope).onEach { logger.info { "Got toggle press" } }.map { Unit }
+
+    override suspend fun reset(scope: CoroutineScope): Flow<Unit> {
+        return super.reset(scope)
+    }
 }

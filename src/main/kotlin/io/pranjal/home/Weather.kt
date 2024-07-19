@@ -23,9 +23,9 @@ import kotlin.concurrent.thread
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.minutes
 
-val API_KEY = System.getenv()["OPENWEATHER_API_KEY"] ?: throw Exception("OPENWEATHER_API_KEY not set")
+val API_KEY = System.getenv()["OPENWEATHER_API_KEY"]  //throw Exception("OPENWEATHER_API_KEY not set")
 
-val logger = KotlinLogging.logger {}
+private val logger = KotlinLogging.logger {}
 
 val lat = "42.402853507187295"
 val long = "-71.10932974603533"
@@ -36,12 +36,16 @@ private var weatherFlow = MutableSharedFlow<Weather>(replay = 1)
 
 fun startUpdateWeatherThread() {
     runBlocking {
-        weatherFlow.emit(fetchWeather())
+        fetchWeather()?.let {
+            weatherFlow.emit(it)
+        }
     }
     thread {
         while (true) {
             runBlocking {
-                weatherFlow.emit(fetchWeather())
+                fetchWeather()?.let {
+                    weatherFlow.emit(it)
+                }
             }
             Thread.sleep(weatherTtl.inWholeMilliseconds)
         }
@@ -102,7 +106,11 @@ data class WeatherResponse(
     val current: Weather
 )
 
-private suspend fun fetchWeather(): Weather {
+private suspend fun fetchWeather(): Weather? {
+    if (API_KEY == null) {
+        logger.error { "OPENWEATHER_API_KEY not set" }
+        return null
+    }
     try {
         val weather =
             weatherClient.get("https://api.openweathermap.org/data/3.0/onecall?lat=$lat&lon=$long&exclude=minutely,hourly,daily&appid=$API_KEY")

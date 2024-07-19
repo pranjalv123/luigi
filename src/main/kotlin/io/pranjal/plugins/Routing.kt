@@ -5,7 +5,11 @@ import io.ktor.server.application.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import io.ktor.server.sse.*
+import io.pranjal.home.devices.makes.VirtualDimmer
+import io.pranjal.home.devices.makes.virtualDimmers
 import io.pranjal.home.getWeather
+import io.pranjal.home.lights.lightsGroups
+import io.pranjal.mqttClient
 import kotlinx.coroutines.runBlocking
 
 fun Application.configureRouting() {
@@ -16,9 +20,7 @@ fun Application.configureRouting() {
 
         sse("/mqtt_stream") {
              runBlocking {
-                val client = io.pranjal.mqtt.MqttClient()
-                client.connect()
-                val flow = client.subscribe("#", this)
+                val flow = mqttClient.subscribe("#", this)
                 flow.collect {
                     println("Got message: ${it}")
                     send(it)
@@ -30,5 +32,8 @@ fun Application.configureRouting() {
         get("/weather") {
             call.respondText(getWeather().toString())
         }
+
+        virtualDimmers()
+        lightsGroups()
     }
 }

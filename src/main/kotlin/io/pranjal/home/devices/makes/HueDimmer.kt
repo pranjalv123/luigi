@@ -24,7 +24,7 @@ class HueDimmer(definition: Definition, client: MqttClient) : Device(definition,
         override val location: Device.Definition.Location
     ) : Device.Definition
 
-    val logger = KotlinLogging.logger("HueDimmer ${definition.name} [${definition.id}]")
+    private val logger = KotlinLogging.logger("HueDimmer ${definition.name} [${definition.id}]")
 
     override suspend fun turnOn(scope: CoroutineScope): Flow<Unit> =
         onAction("on_press", scope).onEach { logger.info { "Got on press" } }.map { Unit }

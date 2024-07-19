@@ -1,143 +1,109 @@
 package io.pranjal.home
 
+import io.pranjal.home.lights.Brightness
+import io.pranjal.home.lights.ColorTemperature
 import jdk.jfr.Frequency
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.SharedFlow
-import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import kotlinx.datetime.*
+import kotlinx.serialization.KSerializer
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.descriptors.PrimitiveKind
+import kotlinx.serialization.descriptors.PrimitiveSerialDescriptor
+import kotlinx.serialization.encoding.Decoder
+import kotlinx.serialization.encoding.Encoder
+import kotlinx.serialization.modules.SerializersModule
+import kotlinx.serialization.modules.polymorphic
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.days
 import kotlin.time.DurationUnit
 
 val TZ = TimeZone.of("America/New_York")
 
-suspend fun runDaily(at: LocalTime, scope: CoroutineScope): Flow<Unit> = flow {
-    scope.launch {
-        while (true) {
-            val now = Clock.System.now().toLocalDateTime(TZ)
-            val today = Clock.System.todayIn(TZ)
-            val target = today.atTime(at)
-            val delay = if (now > target) {
-                (target.toInstant(TZ) + 1.days) - Clock.System.now()
-            } else {
-                target.toInstant(TZ) - Clock.System.now()
-            }
-            kotlinx.coroutines.delay(delay.toLong(DurationUnit.MILLISECONDS))
-            emit(Unit)
-        }
-    }
-}
+@Serializable
+sealed interface Schedule<T> {
+    val clock: Clock
+    fun valueAt(time: Instant): T
+    fun now(): T = valueAt(clock.now())
+    fun prune() {}
 
-abstract class Schedule<T> {
-    private var overrides = mutableListOf<OverrideSchedule<T>>()
-    abstract fun valueAt(time: Instant): T
-    fun now(): T = valueAt(Clock.System.now())
-    open fun prune() {
-        overrides = overrides.filter { !it.isExpired }.toMutableList()
-    }
-    fun runEvery(duration: Duration): Flow<T> = flow {
-        while (true) {
-            val startTime = Clock.System.now()
-            try {
-                emit(overrides.firstOrNull { it.isActive }?.now() ?: now())
-            } catch (e: Exception) {
-                println("Failed to run scheduled task")
-                e.printStackTrace()
-            }
-            prune()
-            val delay = duration - (Clock.System.now() - startTime)
-            kotlinx.coroutines.delay(delay.toLong(DurationUnit.MILLISECONDS))
-
-        }
-    }
-
-    fun override(override: Schedule<T>, startTime: Instant, endTime: Instant) {
-        overrides.add(OverrideSchedule(override, startTime, endTime))
-    }
-    fun cancelOverrides() {
-        overrides.forEach { it.cancel() }
-    }
-}
-
-class OverrideSchedule<T>(val schedule: Schedule<T>, val startTime: Instant, val endTime: Instant) :
-    Schedule<T>() {
-    private var cancelled: Boolean = false
-    override fun valueAt(time: Instant): T = schedule.valueAt(time)
-    fun cancel() {
-        cancelled = true
-    }
-    val isActive: Boolean
-        get() {
-            if (cancelled) return false
-            val now = Clock.System.now()
-            return now in startTime..endTime
-        }
-
-    val isExpired: Boolean
-        get() {
-            if (cancelled) return true
-            val now = Clock.System.now()
-            return now > endTime
-        }
-
-}
-
-class FixedSchedule<T>(val value: T) : Schedule<T>() {
-    override fun valueAt(time: Instant): T = value
-}
-
-class InterpolatingSchedule(vararg startingPoints: Pair<Instant, Double>) : Schedule<Double>() {
-    private data class Point(val time: Instant, val value: Double)
-
-    private val points = startingPoints.map { Point(it.first, it.second) }.toMutableList()
-    override fun prune() {
-        super.prune()
-        val now = Clock.System.now()
-        val mostRecentPastPoint = points.filter { it.time < now }.maxByOrNull { it.time } ?: return
-        points.removeIf { it.time < mostRecentPastPoint.time }
-    }
-
-    @Synchronized
-    fun reset(vararg startingPoints: Pair<Instant, Double>) {
-        points.clear()
-        points.addAll(startingPoints.map { Point(it.first, it.second) })
-    }
-
-    @Synchronized
-    fun addPoint(time: Instant, value: Double) {
-        points.removeIf { it.time == time }
-        points.add(Point(time, value))
-        prune()
-        points.sortBy { it.time }
-    }
-
-    @Synchronized
-    override fun valueAt(time: Instant): Double {
-        points.binarySearchBy(time) { it.time }.let { index ->
-            if (index >= 0) {
-                return points[index].value
-            } else {
-                val insertionPoint = -index - 1
-                if (insertionPoint == 0) {
-                    return points.first().value
-                } else if (insertionPoint == points.size) {
-                    return points.last().value
-                } else {
-                    val before = points[insertionPoint - 1]
-                    val after = points[insertionPoint]
-                    val timeFraction =
-                        (time - before.time).inWholeMilliseconds.toDouble() / (after.time - before.time).inWholeMilliseconds.toDouble()
-                    return before.value + (after.value - before.value) * timeFraction
+    fun runEvery(duration: Duration, scope: CoroutineScope): StateFlow<T> {
+        val flow = MutableStateFlow(now())
+        scope.launch {
+            while (true) {
+                val startTime = clock.now()
+                try {
+                    flow.value = now()
+                } catch (e: Exception) {
+                    println("Failed to run scheduled task")
+                    e.printStackTrace()
                 }
+                prune()
+                val delay = duration - (clock.now() - startTime)
+                kotlinx.coroutines.delay(delay.toLong(DurationUnit.MILLISECONDS))
+
             }
         }
+        return flow
     }
 }
 
-fun <T> schedule(block: (time: Instant) -> T): Schedule<T> {
-    return object : Schedule<T>() {
-        override fun valueAt(time: Instant): T = block(time)
+
+interface Interpolatable<T> {
+    //    companion object {
+//        val serializersModule = SerializersModule {
+//            polymorphic(Interpolatable::class) {
+//                subclass(Brightness::class, Brightness.serializer())
+//                subclass(ColorTemperature::class, ColorTemperature.serializer())
+//            }
+//        }
+//    }
+    operator fun plus(a: T): T
+    operator fun minus(a: T): T
+    operator fun times(b: Double): T
+}
+
+
+private class DailyInterpolatingSchedule<T : Interpolatable<T>>(
+    vararg val points: Pair<LocalTime, T>,
+    override val clock: Clock
+) : Schedule<T> {
+    override fun valueAt(time: Instant): T {
+        val localTime = time.toLocalDateTime(TZ).time
+        val (firstTime, firstValue) = points.lastOrNull { it.first <= localTime } ?: points.first()
+        val (secondTime, secondValue) = points.firstOrNull { it.first > localTime } ?: points.last()
+        val timeInterval = secondTime.toSecondOfDay() - firstTime.toSecondOfDay()
+        val timePassed = localTime.toSecondOfDay() - firstTime.toSecondOfDay()
+        if (timeInterval == 0) return firstValue
+        val timeFraction = timePassed.toDouble() / timeInterval
+        return firstValue + (secondValue - firstValue) * timeFraction
     }
 }
+
+@Serializable
+data class BrightnessAtTime(val time: LocalTime, val brightness: Brightness) {
+    fun toPair() = time to brightness
+}
+
+@Serializable
+class BrightnessSchedule(
+    vararg val brightnesses: BrightnessAtTime,
+    override val clock: Clock
+) : Schedule<Brightness> by DailyInterpolatingSchedule(
+    *(brightnesses.map { it.toPair() }.toTypedArray()),
+    clock = clock
+) {
+}
+
+@Serializable
+data class ColorTemperatureAtTime(val time: LocalTime, val colorTemperature: ColorTemperature) {
+    fun toPair() = time to colorTemperature
+}
+
+@Serializable
+class ColorTemperaturesSchedule(
+    vararg val colorTemperatures: ColorTemperatureAtTime,
+    override val clock: Clock
+) : Schedule<ColorTemperature> by DailyInterpolatingSchedule(*(colorTemperatures.map { it.toPair() }
+    .toTypedArray()), clock = clock)
