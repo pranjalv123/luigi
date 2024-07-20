@@ -9,6 +9,10 @@ import io.pranjal.home.Schedule
 import io.pranjal.home.devices.Light
 import io.pranjal.home.devices.Switch
 import io.pranjal.home.devices.inputFlow
+import io.pranjal.home.homeassistant.HADevice
+import io.pranjal.home.homeassistant.HaConfig
+import io.pranjal.home.homeassistant.LightsState
+import io.pranjal.mqtt.MqttClient
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.collectLatest
@@ -30,13 +34,48 @@ class LightsGroup(
     val switches: List<Switch>,
     val brightnessSchedule: Schedule<Brightness>,
     val colorTemperatureSchedule: Schedule<ColorTemperature>,
-    val clock: Clock
-) {
+    val clock: Clock,
+    val mqttClient: MqttClient
+) : HADevice<LightsState> {
+    val baseState = BaseState(brightnessSchedule, colorTemperatureSchedule, clock = clock)
 
-    var state: State = State.Off(BaseState(brightnessSchedule, colorTemperatureSchedule, clock = clock))
+    var state: State = State.Off(baseState)
         private set
-    private val renderer = Renderer(lights)
+    private val renderer = Renderer(lights, this, mqttClient)
     var initialized = false
+    override val haConfig = HaConfig<LightsState> (
+        topic = "luigi/lightgroup/$name/state",
+        componentType = "light",
+        componentName = name,
+        stateSerializer = LightsState.serializer()
+    )
+
+    override fun currentHaState() = LightsState(
+        brightness = (254 * state.brightness.value).toInt(),
+        colorTemperature = state.colorTemperature.temperatureReciprocalMegakelvin.toInt(),
+        state = if (state.brightness == Brightness.OFF) LightsState.StateEnum.OFF else LightsState.StateEnum.ON
+    )
+
+    override suspend fun handleStateUpdate(state: LightsState) {
+        logger.info { "Got state update from HA: $state" }
+        val brightness = state.brightness?.let { Brightness(it.toDouble()/254) }
+        val colorTemperature = state.colorTemperature?.let { ColorTemperature(((1.0 / it.toDouble()) * 1000000).toInt())}
+        val newState = when (state.state) {
+            LightsState.StateEnum.OFF -> State.Off(baseState)
+            LightsState.StateEnum.ON, null -> {
+                val defaultBrightness = brightnessSchedule.now()
+                when {
+                    brightness == null -> State.Default(baseState)
+                    brightness < defaultBrightness * 0.95 -> State.Dimmed(brightness, baseState)
+                    brightness > defaultBrightness * 1.05 -> State.Brightened(brightness, baseState)
+                    else -> State.Default(baseState)
+                }
+            }
+        }
+        this.state = newState
+        renderer.render(newState, transition = 500.milliseconds)
+    }
+
     init {
         scope.launch {
             logger.info { "Setting up input flow for lights group $name" }
@@ -49,10 +88,13 @@ class LightsGroup(
         }
         scope.launch {
             while (true) {
-                logger.trace {"Rendering lights group $name at ${clock.now()}: $state"}
+                logger.trace { "Rendering lights group $name at ${clock.now()}: $state" }
                 renderer.render(state, transition = 0.milliseconds)
                 delay(1.minutes)
             }
+        }
+        scope.launch {
+            homeAssistantListener(mqttClient, scope)
         }
         logger.info { "Adding lights group $name" }
         lightsGroups.add(this)

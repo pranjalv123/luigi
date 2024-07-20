@@ -7,6 +7,7 @@ import io.pranjal.home.ColorTemperaturesSchedule
 import io.pranjal.home.devices.inputFlow
 import io.pranjal.home.devices.makes.VirtualDimmer
 import io.pranjal.home.devices.makes.VirtualLight
+import io.pranjal.mqtt.MockMqttClient
 import kotlinx.coroutines.*
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.advanceTimeBy
@@ -35,7 +36,8 @@ class LightsGroupTest {
         switches = listOf(VirtualDimmer("TestDimmer")),
         brightnessSchedule = brightnessSchedule,
         colorTemperatureSchedule = colorTemperaturesSchedule,
-        clock = clock
+        clock = clock,
+        mqttClient = MockMqttClient()
     )
 
     class TestClock : Clock {

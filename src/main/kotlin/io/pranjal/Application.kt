@@ -35,12 +35,8 @@ val environment = when (System.getenv("LUIGI_ENVIRONMENT") ?: "dev") {
     else -> Environment.DEVELOPMENT
 }
 
-val mqttClient: MqttClient = when (environment) {
-    Environment.PRODUCTION -> PahoMqttClient("tcp://localhost:1883", "luigi")
-    Environment.DEVELOPMENT -> MockMqttClient(log = true)
-}
 
-fun CoroutineScope.prodLights(devices: Devices, clock: Clock) = listOf(
+fun CoroutineScope.prodLights(devices: Devices, clock: Clock, mqttClient: MqttClient) = listOf(
     LightsGroup(
         this,
         name = "Kitchen",
@@ -48,7 +44,8 @@ fun CoroutineScope.prodLights(devices: Devices, clock: Clock) = listOf(
         switches = devices.hueDimmers,
         brightnessSchedule = downstairsBrightnessSchedule(clock),
         colorTemperatureSchedule = standardTempSchedule(clock),
-        clock = clock
+        clock = clock,
+        mqttClient = mqttClient
     ),
     LightsGroup(
         this,
@@ -57,7 +54,8 @@ fun CoroutineScope.prodLights(devices: Devices, clock: Clock) = listOf(
         switches = listOf(devices.masterBedroomDimmer) + devices.hueDimmers,
         colorTemperatureSchedule = standardTempSchedule(clock),
         brightnessSchedule = bedroomBrightnessSchedule(clock),
-        clock = clock
+        clock = clock,
+        mqttClient = mqttClient
     ),
     LightsGroup(
         this,
@@ -66,7 +64,8 @@ fun CoroutineScope.prodLights(devices: Devices, clock: Clock) = listOf(
         switches = listOf(devices.sunroomDimmer),
         colorTemperatureSchedule = standardTempSchedule(clock),
         brightnessSchedule = bedroomBrightnessSchedule(clock),
-        clock = clock
+        clock = clock,
+        mqttClient = mqttClient
     ),
     LightsGroup(
         this,
@@ -75,11 +74,12 @@ fun CoroutineScope.prodLights(devices: Devices, clock: Clock) = listOf(
         switches = listOf(devices.walkInClosetDimmer),
         colorTemperatureSchedule = standardTempSchedule(clock),
         brightnessSchedule = bedroomBrightnessSchedule(clock),
-        clock = clock
+        clock = clock,
+        mqttClient = mqttClient
     )
 )
 
-fun CoroutineScope.devLights(devices: Devices, clock: Clock) = listOf(
+fun CoroutineScope.devLights(devices: Devices, clock: Clock, mqttClient: MqttClient) = listOf(
     LightsGroup(
         this,
         name = "Group1",
@@ -87,7 +87,8 @@ fun CoroutineScope.devLights(devices: Devices, clock: Clock) = listOf(
         switches = listOf(VirtualDimmer("dimmer1")),
         brightnessSchedule = downstairsBrightnessSchedule(clock),
         colorTemperatureSchedule = standardTempSchedule(clock),
-        clock = clock
+        clock = clock,
+        mqttClient = mqttClient
     ),
     LightsGroup(
         this,
@@ -96,7 +97,8 @@ fun CoroutineScope.devLights(devices: Devices, clock: Clock) = listOf(
         switches = listOf(VirtualDimmer("dimmer2")),
         brightnessSchedule = bathroomBrightnessSchedule(clock),
         colorTemperatureSchedule = standardTempSchedule(clock),
-        clock = clock
+        clock = clock,
+        mqttClient = mqttClient
     )
 )
 
@@ -108,11 +110,11 @@ fun launchLightsThread(clock: Clock) = thread {
         }
         runBlocking {
             mqttClient.connect()
-            val devices = Devices(mqttClient)
             logger.info { "Connected to MQTT; initializing lights" }
+            val devices = Devices(mqttClient)
             when (environment) {
-                Environment.PRODUCTION -> prodLights(devices, clock)
-                Environment.DEVELOPMENT -> devLights(devices, clock)
+                Environment.PRODUCTION -> prodLights(devices, clock, mqttClient)
+                Environment.DEVELOPMENT -> devLights(devices, clock, mqttClient)
             }
             logger.info { "Initialized lights" }
         }

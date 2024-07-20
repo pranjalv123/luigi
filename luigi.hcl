@@ -31,6 +31,19 @@ job "luigi" {
 
     task "luigi" {
       driver = "docker"
+      template {
+        env = true
+        ##        data = <<EOF
+        ##OPENWEATHER_API_KEY="{{with secret "kv/data/luigi"}}{{.Data.data.OPENWEATHERMAP_API_KEY}}{{end}}"
+        #EOF
+        data = <<EOF
+OPENWEATHER_API_KEY="{{ with nomadVar "nomad/jobs/luigi" }}{{ .OPENWEATHER_API_KEY }}{{ end }}"
+EOF
+        destination = "secrets/file.env"
+      }
+      env {
+        LUIGI_ENVIRONMENT = "production"
+      }
 
       config {
         image = "docker-registry.svc.43mar.io/luigi"
