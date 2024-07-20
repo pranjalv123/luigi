@@ -4,6 +4,7 @@ import io.github.oshai.kotlinlogging.KotlinLogging
 import io.pranjal.mqtt.MqttClient
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.*
+import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.encodeToString
 
@@ -29,18 +30,20 @@ open class Device(val definition: Definition, val client: MqttClient) {
     }
 
     val topicSet: String = "zigbee2mqtt/${definition.id}/set"
-    val topicLuigi: String = "luigi/${definition.id}"
+
+    open suspend fun initialize() {
+        setValue("qos", "1")
+    }
+    init {
+        runBlocking {
+            initialize()
+        }
+    }
 
     suspend fun setValue(key: String, value: String) = setValues(mapOf(key to value))
 
     suspend fun setValues(vararg values: Pair<String, String>) = setValues(values.toMap())
 
-    suspend fun saveState(value: String) {
-        client.publish(topicLuigi, value, retained = true)
-    }
-    suspend fun getState(scope: CoroutineScope): String {
-        return client.subscribe(topicLuigi, scope).first()
-    }
 
     suspend fun setValues(values: Map<String, String>) {
         client.publish(topicSet, values.map { (key, value) -> "\"$key\": \"$value\"" }.joinToString(",", "{", "}"))

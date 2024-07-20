@@ -6,6 +6,7 @@ import io.pranjal.home.devices.makes.HueBulb
 import io.pranjal.home.devices.makes.HueDimmer
 import io.pranjal.home.devices.makes.InovelliSwitch
 import io.pranjal.mqtt.MqttClient
+import kotlin.time.Duration.Companion.seconds
 
 class Devices(mqttClient: MqttClient) {
     object Definitions {
@@ -49,7 +50,7 @@ class Devices(mqttClient: MqttClient) {
             .mapIndexed { i, id -> HueDimmer.Definition(id, "hue_dimmer_${id}", KITCHEN) }
 
         val sunroomSwitch = InovelliSwitch.Definition(
-            "0x943469fffe05d0ab", "sunroom_switch",
+                "0x943469fffe05d0ab", "sunroom_switch",
             Device.Definition.Location.SUNROOM
         )
         val masterBedroomSwitch = InovelliSwitch.Definition(
@@ -100,8 +101,6 @@ class Devices(mqttClient: MqttClient) {
     val walkInClosetDimmer = byId[Definitions.walkInClosetSwitch.id] as InovelliSwitch
 
 
-    fun initSwitches() {
-    }
     //val lights = kitchenLights + masterBedroomLights + sunroomLights + masterBathroomLights + walkInClosetLights
 
 }

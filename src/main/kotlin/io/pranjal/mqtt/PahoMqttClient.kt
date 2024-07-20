@@ -2,9 +2,11 @@ package io.pranjal.mqtt
 
 import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 import org.eclipse.paho.mqttv5.client.IMqttAsyncClient
 import org.eclipse.paho.mqttv5.client.IMqttMessageListener
 import org.eclipse.paho.mqttv5.client.IMqttToken
@@ -56,6 +58,10 @@ class PahoMqttClient(serverUri: String, clientId: String) : MqttClient {
         } catch (e: Throwable) {
             state = State.DISCONNECTED
             logger.error(e) { "Failed to connect to MQTT" }
+        }
+        while (state == State.CONNECTING) {
+            logger.info { "Waiting for MQTT connection" }
+            delay(50)
         }
     }
 

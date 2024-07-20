@@ -11,14 +11,17 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.runBlocking
 import kotlin.time.Duration
+import kotlin.time.Duration.Companion.milliseconds
 
 @OptIn(FlowPreview::class)
 class InovelliSwitch(definition: Definition, client: MqttClient) : Device(definition, client), Switch {
-    /** https://www.zigbee2mqtt.io/devices/929002398602.html#philips-929002398602
+    /** https://www.zigbee2mqtt.io/devices/VZM31-SN.html#inovelli-vzm31-sn
      *
-     * Actions: on_press, on_hold, on_press_release, on_hold_release, off_press, off_hold,
-     * off_press_release, off_hold_release, up_press, up_hold, up_press_release, up_hold_release,
-     * down_press, down_hold, down_press_release, down_hold_release, recall_0, recall_1.
+     * Actions: down_single, up_single, config_single, down_release, up_release, config_release, down_held, up_held,
+     * config_held, down_double, up_double, config_double, down_triple, up_triple, config_triple, down_quadruple,
+     * up_quadruple, config_quadruple, down_quintuple, up_quintuple, config_quintuple.
+     *
+     *
      *
      * */
 
@@ -30,11 +33,17 @@ class InovelliSwitch(definition: Definition, client: MqttClient) : Device(defini
 
     private val logger = KotlinLogging.logger("Inovelli ${definition.name} [${definition.id}]")
 
-    fun setSmartbulbMode() {
-        runBlocking { setValue("smartBulbMode", "Smart Bulb Mode") }
+    suspend fun setSmartbulbMode() {
+        setValue("smartBulbMode", "Smart Bulb Mode")
     }
-    fun setButtonDelay(duration: Duration) {
-        runBlocking { setValue("buttonDelay", duration.inWholeMilliseconds.toString()) }
+
+    suspend fun setButtonDelay(duration: Duration) {
+        setValue("buttonDelay", duration.inWholeMilliseconds.toString())
+    }
+
+    override suspend fun initialize() {
+        setSmartbulbMode()
+        setButtonDelay(0.milliseconds)
     }
 
     override suspend fun turnOn(scope: CoroutineScope): Flow<Unit> =
@@ -48,10 +57,8 @@ class InovelliSwitch(definition: Definition, client: MqttClient) : Device(defini
 
     override suspend fun decreaseBrightness(scope: CoroutineScope): Flow<Unit> =
         onAction("down_single", scope).onEach { logger.info { "Got decrease brightness press" } }.map { Unit }
-    override suspend fun toggle(scope: CoroutineScope): Flow<Unit> =
-        onAction("up_down", scope).onEach { logger.info { "Got toggle press" } }.map { Unit }
 
-    override suspend fun reset(scope: CoroutineScope): Flow<Unit> {
-        return super.reset(scope)
-    }
+    override suspend fun reset(scope: CoroutineScope): Flow<Unit> = onAction("config_single", scope).onEach {
+        logger.info { "Got reset press" }
+    }.map { Unit }
 }

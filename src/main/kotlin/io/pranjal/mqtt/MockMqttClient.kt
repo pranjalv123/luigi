@@ -22,6 +22,7 @@ class MockMqttClient(val log : Boolean = true) : MqttClient
     }
 
     val topicFlows = mutableMapOf<Topic, MutableSharedFlow<String>>()
+    val retained = mutableMapOf<Topic, String>()
 
     override suspend fun subscribe(topic: Topic, scope: CoroutineScope): SharedFlow<String> {
         if (log) {
@@ -38,7 +39,7 @@ class MockMqttClient(val log : Boolean = true) : MqttClient
         }
         topicFlows[topic]?.emit(message)
         if(retained) {
-            throw NotImplementedError("Retained messages not supported in MockMqttClient")
+            logger.warn { "Retained messages are not supported in MockMqttClient" }
         }
     }
 }

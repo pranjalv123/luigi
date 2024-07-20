@@ -21,7 +21,6 @@ private val virtualDimmers = mutableMapOf<String, VirtualDimmer>()
 
 class VirtualDimmer(name: String) : Switch {
 
-
     val onFlow = MutableSharedFlow<Unit>()
     val offFlow = MutableSharedFlow<Unit>()
     val toggleFlow = MutableSharedFlow<Unit>()

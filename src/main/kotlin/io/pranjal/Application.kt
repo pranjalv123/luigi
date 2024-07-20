@@ -106,9 +106,9 @@ fun launchLightsThread(clock: Clock) = thread {
             Environment.PRODUCTION -> PahoMqttClient("tcp://localhost:1883", "luigi")
             Environment.DEVELOPMENT -> MockMqttClient(log = true)
         }
-        val devices = Devices(mqttClient)
         runBlocking {
             mqttClient.connect()
+            val devices = Devices(mqttClient)
             logger.info { "Connected to MQTT; initializing lights" }
             when (environment) {
                 Environment.PRODUCTION -> prodLights(devices, clock)

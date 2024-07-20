@@ -175,9 +175,9 @@ class LightsGroupTest {
 
         switch.increaseBrightnessFlow.emit(Unit)
         delay(1)
-        assertEquals(Brightness(0.2), light.brightness)
+        assertEquals(Brightness(0.16), light.brightness)
         advance(4.hours)
-        assertEquals(Brightness(0.2), light.brightness)
+        assertEquals(Brightness(0.16), light.brightness)
 
         switch.offFlow.emit(Unit)
         delay(1)

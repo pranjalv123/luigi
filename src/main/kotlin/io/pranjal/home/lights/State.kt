@@ -11,7 +11,7 @@ import kotlin.time.Duration.Companion.hours
 data class BaseState(
     val brightness: Schedule<Brightness>,
     val colorTemperature: Schedule<ColorTemperature>,
-    val brightnessLevels: Int = 10,
+    val brightnessLevels: List<Double> = Levels.renard10,
     val dimmingLifetime: Duration = 4.hours,
     val clock: Clock
 )
@@ -49,11 +49,10 @@ sealed class State {
         override fun transition(input: Input) =
             when (input) {
                 Input.DecreaseBrightness -> Dimmed(brightness.dim(baseState.brightnessLevels), baseState)
-                Input.IncreaseBrightness -> Brightened(brightness.brighten(baseState.brightnessLevels), baseState)
+                Input.IncreaseBrightness, Input.TurnOn -> Brightened(brightness.brighten(baseState.brightnessLevels), baseState)
                 Input.Reset -> this
                 Input.Toggle -> Off(baseState)
                 Input.TurnOff -> Off(baseState)
-                Input.TurnOn -> this
                 is Input.Custom -> Custom(input.colorTemperature, input.brightness, baseState)
             }
     }
@@ -71,11 +70,10 @@ sealed class State {
                     }
                 }
 
-                Input.IncreaseBrightness -> Brightened(brightness.brighten(baseState.brightnessLevels), baseState)
+                Input.IncreaseBrightness, Input.TurnOn -> Brightened(brightness.brighten(baseState.brightnessLevels), baseState)
                 Input.Reset -> Default(baseState)
                 Input.Toggle -> Off(baseState)
                 Input.TurnOff -> Off(baseState)
-                Input.TurnOn -> this
                 is Input.Custom -> Custom(input.colorTemperature, input.brightness, baseState)
             }
 
@@ -86,7 +84,7 @@ sealed class State {
         override fun transition(input: Input) =
             when (input) {
                 Input.DecreaseBrightness -> Dimmed(brightness.dim(baseState.brightnessLevels), baseState)
-                Input.IncreaseBrightness -> {
+                Input.IncreaseBrightness, Input.TurnOn -> {
                     val newBrightness = brightness.brighten(baseState.brightnessLevels)
                     if (newBrightness > baseState.brightness.now()) {
                         Default(baseState)
@@ -98,7 +96,7 @@ sealed class State {
                 Input.Reset -> Default(baseState)
                 Input.Toggle -> DimmedOff(this, baseState)
                 Input.TurnOff -> DimmedOff(this, baseState)
-                Input.TurnOn -> this
+
                 is Input.Custom -> Custom(input.colorTemperature, input.brightness, baseState)
             }
 
