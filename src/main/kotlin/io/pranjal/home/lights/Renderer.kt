@@ -15,9 +15,9 @@ class Renderer(
         val brightness = state.brightness
         val colorTemperature = state.colorTemperature
         lights.forEach {
-            it.setColorTemperature(colorTemperature, transition)
-            it.setBrightness(brightness, transition)
+            it.setColorTemperatureAndBrightness(colorTemperature, brightness, transition)
         }
+        println("PUBLISHING STATE!!")
         haDevice.publishState(mqttClient)
     }
 }

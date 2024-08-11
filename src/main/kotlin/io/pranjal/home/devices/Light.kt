@@ -28,4 +28,13 @@ interface Light {
     suspend fun moveBrightness(speed: Double)
     suspend fun stepBrightness(step: Int)
     suspend fun setColorTemperature(temperature: ColorTemperature, transition: Duration = Duration.ZERO)
+
+    suspend fun setColorTemperatureAndBrightness(
+        temperature: ColorTemperature,
+        brightness: Brightness,
+        transition: Duration = Duration.ZERO
+    ) {
+        setColorTemperature(temperature, transition)
+        setBrightness(brightness, transition)
+    }
 }

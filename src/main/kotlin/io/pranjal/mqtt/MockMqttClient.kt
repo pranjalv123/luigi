@@ -24,6 +24,8 @@ class MockMqttClient(val log : Boolean = true) : MqttClient
     val topicFlows = mutableMapOf<Topic, MutableSharedFlow<String>>()
     val retained = mutableMapOf<Topic, String>()
 
+    val publishedMessages = mutableMapOf<String, MutableList<String>>()
+
     override suspend fun subscribe(topic: Topic, scope: CoroutineScope): SharedFlow<String> {
         if (log) {
             logger.info { "Subscribed to $topic" }
@@ -41,5 +43,9 @@ class MockMqttClient(val log : Boolean = true) : MqttClient
         if(retained) {
             logger.warn { "Retained messages are not supported in MockMqttClient" }
         }
+        publishedMessages.getOrPut(topic, { mutableListOf() }).add(message)
     }
+
+    fun clear() = publishedMessages.clear()
+    fun allMessagesForTopic(topic: String) = publishedMessages.get(topic) ?: emptyList()
 }

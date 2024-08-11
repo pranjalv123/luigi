@@ -40,10 +40,30 @@ fun CoroutineScope.prodLights(devices: Devices, clock: Clock, mqttClient: MqttCl
     LightsGroup(
         this,
         name = "Kitchen",
-        lights = listOf(),
-        switches = devices.hueDimmers,
+        lights = devices.kitchenLights,
+        switches = listOf(),
         brightnessSchedule = downstairsBrightnessSchedule(clock),
         colorTemperatureSchedule = standardTempSchedule(clock),
+        clock = clock,
+        mqttClient = mqttClient
+    ),
+    LightsGroup(
+      this,
+        name = "LivingRoom",
+        lights = devices.livingRoomLights,
+        colorTemperatureSchedule = standardTempSchedule(clock),
+        brightnessSchedule = downstairsBrightnessSchedule(clock),
+        switches = listOf(),
+        clock = clock,
+        mqttClient = mqttClient
+    ),
+    LightsGroup(
+        this,
+        name = "DiningRoom",
+        lights = devices.diningRoomLights,
+        colorTemperatureSchedule = standardTempSchedule(clock),
+        brightnessSchedule = downstairsBrightnessSchedule(clock),
+        switches = listOf(),
         clock = clock,
         mqttClient = mqttClient
     ),

@@ -42,4 +42,16 @@ class HueBulb(definition: Definition, client: MqttClient) : Device(definition, c
             "transition" to transition.toString(DurationUnit.SECONDS, 3)
         )
     }
+
+    override suspend fun setColorTemperatureAndBrightness(
+        temperature: ColorTemperature,
+        brightness: Brightness,
+        transition: Duration
+    ) {
+        setValues(
+            "color_temp" to temperature.temperatureReciprocalMegakelvin.toInt().toString(),
+            "brightness" to (brightness.toRange(0, 254)).toString(),
+            "transition" to transition.toString(DurationUnit.SECONDS, 3)
+        )
+    }
 }

@@ -89,7 +89,8 @@ data class BrightnessAtTime(val time: LocalTime, val brightness: Brightness) {
 @Serializable
 class BrightnessSchedule(
     vararg val brightnesses: BrightnessAtTime,
-    override val clock: Clock
+    @kotlinx.serialization.Transient
+    override val clock: Clock = Clock.System
 ) : Schedule<Brightness> by DailyInterpolatingSchedule(
     *(brightnesses.map { it.toPair() }.toTypedArray()),
     clock = clock

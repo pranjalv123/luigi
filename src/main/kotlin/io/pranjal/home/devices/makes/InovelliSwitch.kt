@@ -44,6 +44,7 @@ class InovelliSwitch(definition: Definition, client: MqttClient) : Device(defini
     override suspend fun initialize() {
         setSmartbulbMode()
         setButtonDelay("0ms")
+
     }
 
     override suspend fun turnOn(scope: CoroutineScope): Flow<Unit> =

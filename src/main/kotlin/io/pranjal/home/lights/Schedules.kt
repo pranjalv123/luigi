@@ -25,15 +25,15 @@ fun standardTempSchedule(clock: Clock): Schedule<ColorTemperature> {
 
 fun downstairsBrightnessSchedule(clock: Clock): Schedule<Brightness> {
     return listOf(
-        "00:00" to 0.1,
-        "07:00" to 0.1,
+        "00:00" to 0.05,
+        "07:00" to 0.05,
         "08:00" to 0.2,
         "09:00" to 0.5,
         "10:00" to 1.0,
         "17:00" to 1.0,
         "19:00" to 0.7,
-        "21:00" to 0.3,
-        "23:59" to 0.1,
+        "21:00" to 0.2,
+        "23:59" to 0.05,
     ).map { (time, brightness) ->
         BrightnessAtTime(LocalTime.parse(time), Brightness(brightness))
     }.let { BrightnessSchedule(*it.toTypedArray(), clock = clock) }

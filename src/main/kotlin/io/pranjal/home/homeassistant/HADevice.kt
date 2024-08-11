@@ -31,6 +31,8 @@ interface HADevice<S> {
         }
     }
     suspend fun publishState(mqttClient: MqttClient) {
+        println(currentHaState())
+        println(Json.encodeToString(haConfig.stateSerializer, currentHaState()))
         mqttClient.publish("${haConfig.topic}/state", Json.encodeToString(haConfig.stateSerializer, currentHaState()), retained = true)
     }
     suspend fun sendDiscoveryMessage(mqttClient: MqttClient) {

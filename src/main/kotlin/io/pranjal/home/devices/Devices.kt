@@ -17,7 +17,37 @@ class Devices(mqttClient: MqttClient) {
             "0x001788010db5e92c",
             "0x001788010db5e591",
             "0x001788010db5e673"
-        ).mapIndexed { i, id -> HueBulb.Definition(id, "kitchen_light_${id}", KITCHEN) }
+        ).mapIndexed { i, id -> HueBulb.Definition(id, "kitchen_light_${i}", KITCHEN) }
+
+        val diningRoomLights = listOf<String>(
+            "0x001788010db60df9",
+            "0x001788010d87da29",
+            "0x001788010db5e59d",
+            "0x001788010db60991",
+            "0x001788010db5e813",
+            "0x001788010db60d15"
+        ).mapIndexed { i, id ->
+            HueBulb.Definition(
+                id,
+                "dining_room_light_${i}",
+                Device.Definition.Location.DINING_ROOM
+            )
+        }
+
+        val livingRoomLights = listOf(
+            "0x001788010db5e524",
+            "0x001788010db5e597",
+            "0x001788010db60d50",
+            "0x001788010d87d9f0",
+            "0x001788010d87d98f",
+            "0x001788010db5e8fd",
+        ).mapIndexed { i, id ->
+            HueBulb.Definition(
+                id,
+                "living_room_light_${i}",
+                Device.Definition.Location.LIVING_ROOM
+            )
+        }
 
         val walkinClosetLights = listOf(
             "0x001788010db616c0",
@@ -28,7 +58,7 @@ class Devices(mqttClient: MqttClient) {
             "0x001788010db5e5b2",
             "0x001788010db60dd9",
             "0x001788010db60916",
-            "0x001788010db60976"
+            "0x001788010db60976",
         ).map { id -> HueBulb.Definition(id, "master_bedroom_light_${id}", Device.Definition.Location.MASTER_BEDROOM) }
 
         val masterBathroomLights = listOf(
@@ -42,7 +72,8 @@ class Devices(mqttClient: MqttClient) {
             "0x001788010db5e845"
         ).map { id -> HueBulb.Definition(id, "sunroom_light_${id}", Device.Definition.Location.SUNROOM) }
 
-        val lights = kitchenLights + masterBedroomLights + sunroomLights + masterBathroomLights + walkinClosetLights
+        val lights =
+            kitchenLights + masterBedroomLights + sunroomLights + masterBathroomLights + walkinClosetLights + livingRoomLights + diningRoomLights
 
         val hueDimmerIds = listOf("0x001788010b78fa91")
 
@@ -50,7 +81,7 @@ class Devices(mqttClient: MqttClient) {
             .mapIndexed { i, id -> HueDimmer.Definition(id, "hue_dimmer_${id}", KITCHEN) }
 
         val sunroomSwitch = InovelliSwitch.Definition(
-                "0x943469fffe05d0ab", "sunroom_switch",
+            "0x943469fffe05d0ab", "sunroom_switch",
             Device.Definition.Location.SUNROOM
         )
         val masterBedroomSwitch = InovelliSwitch.Definition(
@@ -76,6 +107,12 @@ class Devices(mqttClient: MqttClient) {
     val byId = devices.associateBy { it.definition.id }
 
     val kitchenLights = Definitions.kitchenLights.map {
+        byId[it.id] as HueBulb
+    }
+    val livingRoomLights = Definitions.livingRoomLights.map {
+        byId[it.id] as HueBulb
+    }
+    val diningRoomLights = Definitions.diningRoomLights.map {
         byId[it.id] as HueBulb
     }
     val hueDimmers = Definitions.hueDimmers.map {

@@ -43,8 +43,8 @@ class LightsGroup(
         private set
     private val renderer = Renderer(lights, this, mqttClient)
     var initialized = false
-    override val haConfig = HaConfig<LightsState> (
-        topic = "luigi/lightgroup/$name/state",
+    override val haConfig = HaConfig<LightsState>(
+        topic = "luigi/lightgroup/$name",
         componentType = "light",
         componentName = name,
         stateSerializer = LightsState.serializer()
@@ -53,13 +53,15 @@ class LightsGroup(
     override fun currentHaState() = LightsState(
         brightness = (254 * state.brightness.value).toInt(),
         colorTemperature = state.colorTemperature.temperatureReciprocalMegakelvin.toInt(),
-        state = if (state.brightness == Brightness.OFF) LightsState.StateEnum.OFF else LightsState.StateEnum.ON
+        state = if (state.brightness == Brightness.OFF) LightsState.StateEnum.OFF else LightsState.StateEnum.ON,
+        colorMode = "color_temp"
     )
 
     override suspend fun handleStateUpdate(state: LightsState) {
         logger.info { "Got state update from HA: $state" }
-        val brightness = state.brightness?.let { Brightness(it.toDouble()/254) }
-        val colorTemperature = state.colorTemperature?.let { ColorTemperature(((1.0 / it.toDouble()) * 1000000).toInt())}
+        val brightness = state.brightness?.let { Brightness(it.toDouble() / 254) }
+        val colorTemperature =
+            state.colorTemperature?.let { ColorTemperature(((1.0 / it.toDouble()) * 1000000).toInt()) }
         val newState = when (state.state) {
             LightsState.StateEnum.OFF -> State.Off(baseState)
             LightsState.StateEnum.ON, null -> {

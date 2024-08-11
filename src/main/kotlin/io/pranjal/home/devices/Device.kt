@@ -25,14 +25,14 @@ open class Device(val definition: Definition, val client: MqttClient) {
             MASTER_BEDROOM,
             MASTER_BATHROOM,
             BATHROOM,
-            OUTSIDE
+            OUTSIDE,
+            DINING_ROOM
         }
     }
 
     val topicSet: String = "zigbee2mqtt/${definition.id}/set"
 
     open suspend fun initialize() {
-        setValue("qos", "1")
     }
     init {
         runBlocking {

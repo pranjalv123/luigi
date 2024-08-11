@@ -24,6 +24,7 @@ import kotlin.time.Duration.Companion.minutes
 
 class LightsGroupTest {
 
+    val mqttClient = MockMqttClient()
     fun lightsGroup(
         coroutineScope: CoroutineScope,
         brightnessSchedule: BrightnessSchedule,
@@ -37,7 +38,7 @@ class LightsGroupTest {
         brightnessSchedule = brightnessSchedule,
         colorTemperatureSchedule = colorTemperaturesSchedule,
         clock = clock,
-        mqttClient = MockMqttClient()
+        mqttClient = mqttClient
     )
 
     class TestClock : Clock {
@@ -65,6 +66,7 @@ class LightsGroupTest {
 
 
     suspend fun setUp(scope: TestScope) {
+        mqttClient.clear()
         clock.set(LocalDateTime(2021, 1, 1, 0, 0).toInstant(tz))
         lgJob =
             scope.launch {
@@ -145,6 +147,24 @@ class LightsGroupTest {
 
             lgJob?.cancel()
         }
+
+    @Test
+    fun testMqttStateMessages() = runTest {
+        setUp(this)
+
+        assertEquals(Brightness(0.0), light.brightness)
+
+        switch.onFlow.emit(Unit)
+        delay(1)
+        assertEquals(Brightness(0.1), light.brightness)
+
+        assertEquals(listOf<String>(
+            "{\"brightness\":0,\"color_temp\":434,\"state\":\"OFF\",\"color_mode\":\"color_temp\"}",
+            "{\"brightness\":25,\"color_temp\":434,\"state\":\"ON\",\"color_mode\":\"color_temp\"}",
+
+        ), mqttClient.allMessagesForTopic("luigi/lightgroup/TestGroup/state"))
+        lgJob?.cancel()
+    }
 
     @Test
     fun testBrightnessMaintained() = runTest {
