@@ -9,6 +9,7 @@ import kotlinx.coroutines.launch
 import kotlinx.datetime.*
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.Transient
 import kotlinx.serialization.descriptors.PrimitiveKind
 import kotlinx.serialization.descriptors.PrimitiveSerialDescriptor
 import kotlinx.serialization.encoding.Decoder
@@ -89,7 +90,7 @@ data class BrightnessAtTime(val time: LocalTime, val brightness: Brightness) {
 @Serializable
 class BrightnessSchedule(
     vararg val brightnesses: BrightnessAtTime,
-    @kotlinx.serialization.Transient
+    @Transient
     override val clock: Clock = Clock.System
 ) : Schedule<Brightness> by DailyInterpolatingSchedule(
     *(brightnesses.map { it.toPair() }.toTypedArray()),
@@ -105,6 +106,7 @@ data class ColorTemperatureAtTime(val time: LocalTime, val colorTemperature: Col
 @Serializable
 class ColorTemperaturesSchedule(
     vararg val colorTemperatures: ColorTemperatureAtTime,
-    override val clock: Clock
+    @Transient
+    override val clock: Clock = Clock.System
 ) : Schedule<ColorTemperature> by DailyInterpolatingSchedule(*(colorTemperatures.map { it.toPair() }
     .toTypedArray()), clock = clock)

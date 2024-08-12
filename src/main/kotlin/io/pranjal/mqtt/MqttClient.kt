@@ -1,13 +1,10 @@
 package io.pranjal.mqtt
 
 import io.github.oshai.kotlinlogging.KotlinLogging
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.DelicateCoroutinesApi
-import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.*
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.channels.trySendBlocking
 import kotlinx.coroutines.flow.*
-import kotlinx.coroutines.launch
 import org.eclipse.paho.mqttv5.client.IMqttAsyncClient
 import org.eclipse.paho.mqttv5.client.IMqttMessageListener
 import org.eclipse.paho.mqttv5.client.IMqttToken
@@ -33,14 +30,15 @@ interface MqttClient {
 
     suspend fun subscribe(topic: Topic, scope: CoroutineScope): SharedFlow<String>
     suspend fun subscribeState(topic: Topic, scope: CoroutineScope): StateFlow<String?> {
-        return MutableStateFlow<String?>(null).apply {
-            scope.launch {
-                subscribe(topic, scope).collect {
-                    value = it
-                }
+        val flow = MutableStateFlow<String?>(null)
+        scope.launch {
+            subscribe(topic, scope).collect {
+                flow.value = it
             }
         }
+        return flow
     }
+    suspend fun unsubscribe(topic: Topic, scope: CoroutineScope)
 
     suspend fun publish(topic: String, message: String, qos: Int = 0, retained: Boolean = false)
 }

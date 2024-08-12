@@ -34,7 +34,12 @@ class MockMqttClient(val log : Boolean = true) : MqttClient
             MutableSharedFlow()
         }
     }
-
+    override suspend fun unsubscribe(topic: Topic, scope: CoroutineScope) {
+        if (log) {
+            logger.info { "Unsubscribed from $topic" }
+        }
+        topicFlows.remove(topic)
+    }
     override suspend fun publish(topic: String, message: String, qos: Int, retained: Boolean) {
         if (log) {
             logger.info { "Published message $message to $topic" }

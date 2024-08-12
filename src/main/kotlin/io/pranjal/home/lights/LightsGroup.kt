@@ -13,12 +13,11 @@ import io.pranjal.home.homeassistant.HADevice
 import io.pranjal.home.homeassistant.HaConfig
 import io.pranjal.home.homeassistant.LightsState
 import io.pranjal.mqtt.MqttClient
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.delay
+import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.merge
-import kotlinx.coroutines.launch
 import kotlinx.datetime.Clock
+import kotlinx.serialization.json.Json
 import kotlin.math.log
 import kotlin.math.round
 import kotlin.time.Duration.Companion.milliseconds
@@ -39,12 +38,46 @@ class LightsGroup(
 ) : HADevice<LightsState> {
     val baseState = BaseState(brightnessSchedule, colorTemperatureSchedule, clock = clock)
 
-    var state: State = State.Off(baseState)
-        private set
+    private lateinit var _state: State
+
     private val renderer = Renderer(lights, this, mqttClient)
     var initialized = false
+
+    val haTopic = "luigi/lightgroup/$name"
+    val internalStateTopic = "luigi/lightgroup/$name/internalstate"
+
+    private suspend fun initializeInternalState(scope: CoroutineScope) {
+        val sub = mqttClient.subscribeState(internalStateTopic, scope)
+        delay(10)
+        val internalState = sub.value
+
+        logger.info { "Read internal state $internalState" }
+        if (internalState != null) {
+            try {
+                _state = Json.decodeFromString(State.serializer(), internalState)
+                logger.info { "Decoded state to $_state" }
+            } catch (e: Exception) {
+                logger.error(e) { "Failed to decode state from $internalState" }
+                _state = State.Off(baseState)
+            }
+        } else {
+            _state = State.Off(baseState)
+        }
+        mqttClient.unsubscribe(internalStateTopic, scope)
+    }
+
+    var state: State
+        get() = _state
+        private set(value) {
+            _state = value
+            runBlocking {
+                mqttClient.publish(internalStateTopic, Json.encodeToString(State.serializer(), value), retained = true)
+            }
+        }
+
+
     override val haConfig = HaConfig<LightsState>(
-        topic = "luigi/lightgroup/$name",
+        topic = haTopic,
         componentType = "light",
         componentName = name,
         stateSerializer = LightsState.serializer()
@@ -80,28 +113,33 @@ class LightsGroup(
 
     init {
         scope.launch {
-            logger.info { "Setting up input flow for lights group $name" }
-            initialized = true
-            switches.map { it.inputFlow(this) }.merge().collect { input ->
-                logger.info { "Got input $input" }
-                state = state.transition(input)
-                renderer.render(state, transition = 500.milliseconds)
+            initializeInternalState(this)
+
+            scope.launch {
+                logger.info { "Setting up input flow for lights group $name" }
+                initialized = true
+                switches.map { it.inputFlow(this) }.merge().collect { input ->
+                    logger.info { "Got input $input" }
+                    state = state.transition(input)
+                    renderer.render(state, transition = 500.milliseconds)
+                }
             }
-        }
-        scope.launch {
-            while (true) {
-                logger.trace { "Rendering lights group $name at ${clock.now()}: $state" }
-                renderer.render(state, transition = 0.milliseconds)
-                delay(1.minutes)
+            scope.launch {
+                while (true) {
+                    logger.trace { "Rendering lights group $name at ${clock.now()}: $state" }
+                    renderer.render(state, transition = 0.milliseconds)
+                    delay(1.minutes)
+                }
             }
-        }
-        scope.launch {
-            homeAssistantListener(mqttClient, scope)
+            scope.launch {
+                homeAssistantListener(mqttClient, scope)
+            }
         }
         logger.info { "Adding lights group $name" }
         lightsGroups.add(this)
         logger.info { "Lights group $name added" }
         logger.info { lightsGroups.map { it.name } }
+
     }
 }
 

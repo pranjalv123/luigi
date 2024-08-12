@@ -4,6 +4,7 @@ import io.pranjal.home.Schedule
 import kotlinx.datetime.Clock
 import kotlinx.datetime.Instant
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.Transient
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.hours
 
@@ -13,10 +14,12 @@ data class BaseState(
     val colorTemperature: Schedule<ColorTemperature>,
     val brightnessLevels: List<Double> = Levels.renard10,
     val dimmingLifetime: Duration = 4.hours,
-    val clock: Clock
+    @Transient
+    val clock: Clock = Clock.System
 )
 
 
+@Serializable
 sealed class State {
     abstract val baseState: BaseState
     abstract fun transition(input: Input): State

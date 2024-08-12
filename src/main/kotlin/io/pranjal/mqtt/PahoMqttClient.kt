@@ -113,6 +113,11 @@ class PahoMqttClient(serverUri: String, clientId: String) : MqttClient {
             }
         }
 
+    override suspend fun unsubscribe(topic: Topic, scope: CoroutineScope) {
+        subscriptions.remove(topic)
+        client.unsubscribe(topic)
+    }
+
     override suspend fun publish(topic: String, message: String, qos: Int, retained: Boolean) =
         suspendCoroutine<Unit> { cont ->
             try {

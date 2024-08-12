@@ -173,6 +173,7 @@ class LightsGroupTest {
         switch.onFlow.emit(Unit)
         delay(5)
         assertEquals(Brightness(0.1375), light.brightness)
+        print("step 1")
 
         switch.offFlow.emit(Unit)
         delay(1)
@@ -181,6 +182,8 @@ class LightsGroupTest {
         switch.onFlow.emit(Unit)
         delay(1)
         assertEquals(Brightness(0.1375), light.brightness)
+
+        println("Done; canceling job")
         lgJob?.cancel()
 
     }
