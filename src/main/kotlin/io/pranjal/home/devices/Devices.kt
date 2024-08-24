@@ -51,25 +51,25 @@ class Devices(mqttClient: MqttClient) {
         val walkinClosetLights = listOf(
             "0x001788010db616c0",
             "0x001788010db6097f"
-        ).map { id -> HueBulb.Definition(id, "walk_in_closet_light_${id}", MASTER_BATHROOM) }
+        ).mapIndexed { i, id -> HueBulb.Definition(id, "walk_in_closet_light_${i}", MASTER_BATHROOM) }
 
         val masterBedroomLights = listOf(
             "0x001788010db5e5b2",
             "0x001788010db60dd9",
             "0x001788010db60916",
             "0x001788010db60976",
-        ).map { id -> HueBulb.Definition(id, "master_bedroom_light_${id}", ZigbeeDevice.Definition.Location.MASTER_BEDROOM) }
+        ).mapIndexed { i, id -> HueBulb.Definition(id, "master_bedroom_light_${i}", ZigbeeDevice.Definition.Location.MASTER_BEDROOM) }
 
         val masterBathroomLights = listOf(
             "0x001788010db6035c",
             "0x001788010d87d7b9"
-        ).map { id -> HueBulb.Definition(id, "master_bathroom_light_${id}", MASTER_BATHROOM) }
+        ).mapIndexed { i, id -> HueBulb.Definition(id, "master_bathroom_light_${i}", MASTER_BATHROOM) }
 
         val sunroomLights = listOf(
             "0x001788010db60e3a",
             "0x001788010db61d0a",
             "0x001788010db5e845"
-        ).map { id -> HueBulb.Definition(id, "sunroom_light_${id}", ZigbeeDevice.Definition.Location.SUNROOM) }
+        ).mapIndexed { i, id -> HueBulb.Definition(id, "sunroom_light_${i}", ZigbeeDevice.Definition.Location.SUNROOM) }
 
         val lights =
             kitchenLights + masterBedroomLights + sunroomLights + masterBathroomLights + walkinClosetLights + livingRoomLights + diningRoomLights
@@ -77,7 +77,7 @@ class Devices(mqttClient: MqttClient) {
         val hueDimmerIds = listOf("0x001788010b78fa91")
 
         val hueDimmers = hueDimmerIds
-            .mapIndexed { i, id -> HueDimmer.Definition(id, "hue_dimmer_${id}", KITCHEN) }
+            .mapIndexed { i, id -> HueDimmer.Definition(id, "hue_dimmer_${i}", KITCHEN) }
 
         val sunroomSwitch = InovelliSwitch.Definition(
             "0x943469fffe05d0ab", "sunroom_switch",
