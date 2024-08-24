@@ -28,7 +28,7 @@ interface MqttClient {
 
     suspend fun disconnect()
 
-    suspend fun subscribe(topic: Topic, scope: CoroutineScope): SharedFlow<String>
+    suspend fun subscribe(topic: Topic, scope: CoroutineScope): SharedFlow<String?>
     suspend fun subscribeState(topic: Topic, scope: CoroutineScope): StateFlow<String?> {
         val flow = MutableStateFlow<String?>(null)
         scope.launch {

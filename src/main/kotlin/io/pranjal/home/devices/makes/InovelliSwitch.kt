@@ -1,7 +1,7 @@
 package io.pranjal.home.devices.makes
 
 import io.github.oshai.kotlinlogging.KotlinLogging
-import io.pranjal.home.devices.Device
+import io.pranjal.home.devices.ZigbeeDevice
 import io.pranjal.home.devices.Switch
 import io.pranjal.mqtt.MqttClient
 import kotlinx.coroutines.CoroutineScope
@@ -9,12 +9,9 @@ import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
-import kotlinx.coroutines.runBlocking
-import kotlin.time.Duration
-import kotlin.time.Duration.Companion.milliseconds
 
 @OptIn(FlowPreview::class)
-class InovelliSwitch(definition: Definition, client: MqttClient) : Device(definition, client), Switch {
+class InovelliSwitch(definition: Definition, client: MqttClient) : ZigbeeDevice(definition, client), Switch {
     /** https://www.zigbee2mqtt.io/devices/VZM31-SN.html#inovelli-vzm31-sn
      *
      * Actions: down_single, up_single, config_single, down_release, up_release, config_release, down_held, up_held,
@@ -28,8 +25,8 @@ class InovelliSwitch(definition: Definition, client: MqttClient) : Device(defini
     data class Definition(
         override val id: String,
         override val name: String,
-        override val location: Device.Definition.Location
-    ) : Device.Definition
+        override val location: ZigbeeDevice.Definition.Location
+    ) : ZigbeeDevice.Definition
 
     private val logger = KotlinLogging.logger("Inovelli ${definition.name} [${definition.id}]")
 

@@ -10,6 +10,7 @@ substitutions:
 
 captive_portal:
 
+
 packages:
   remote_package:
     url: https://github.com/Blackymas/NSPanel_HA_Blueprint

@@ -5,8 +5,22 @@ substitutions:
   wifi_ssid: !secret wifi_ssid
   wifi_password: !secret wifi_password
   nextion_update_url: "https://homeassistant.svc.43mar.io/local/nspanel-masterbath.tft"  # Optional
+  mqtt_topic: nspanel/masterbath
   # Add-on configuration (if needed)
   # heater_relay: "1"  # Possible values: "1" or "2"
+logger:
+  level: DEBUG
+mqtt:
+  broker: "mqtt.svc.43mar.io"
+  username: ${device_name}
+  topic_prefix: ${mqtt_topic}
+  discovery: false
+  on_message:
+    topic: ${mqtt_topic}/command
+    then:
+      - logger.log: "Nextion: Received output: !payload!"
+      - lambda: |-
+          disp1->send_command(x.c_str());
 
 captive_portal:
 
@@ -20,8 +34,25 @@ packages:
       # Optional advanced and add-on configurations
       # - esphome/nspanel_esphome_advanced.yaml
       # - esphome/nspanel_esphome_addon_ble_tracker.yaml
-      - esphome/nspanel_esphome_addon_bluetooth_proxy.yaml
+#      - esphome/nspanel_esphome_addon_bluetooth_proxy.yaml
       # - esphome/nspanel_esphome_addon_climate_cool.yaml
       # - esphome/nspanel_esphome_addon_climate_heat.yaml
       # - esphome/nspanel_esphome_addon_climate_dual.yaml
       # - esphome/nspanel_esphome_addon_co
+
+text_sensor:
+
+  - id: nextion_to_mqtt
+    name: Nextion to MQTT
+    platform: nextion
+    nextion_id: disp1
+    component_name: mqtt
+    internal: true
+    on_value:
+      then:
+        - logger.log: "Nextion: Sending input: !value!"
+        - mqtt.publish:
+            topic: ${mqtt_topic}/nextion_input
+            payload: !lambda |-
+              return x;
+

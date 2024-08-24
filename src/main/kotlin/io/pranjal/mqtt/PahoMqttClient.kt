@@ -4,7 +4,9 @@ import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import org.eclipse.paho.mqttv5.client.IMqttAsyncClient
@@ -30,7 +32,7 @@ class PahoMqttClient(serverUri: String, clientId: String) : MqttClient {
     val client: IMqttAsyncClient = MqttAsyncClient(serverUri, clientId)
     var state = State.DISCONNECTED
 
-    val subscriptions = mutableMapOf<Topic, SharedFlow<String>>()
+    val subscriptions = mutableMapOf<Topic, SharedFlow<String?>>()
 
     override suspend fun connect() {
         try {
@@ -81,7 +83,14 @@ class PahoMqttClient(serverUri: String, clientId: String) : MqttClient {
             })
         }
 
-    override suspend fun subscribe(topic: Topic, scope: CoroutineScope): SharedFlow<String> =
+    override suspend fun subscribe(topic: Topic, scope: CoroutineScope): SharedFlow<String?> = subscribe(topic, scope) { MutableSharedFlow() }
+    override suspend fun subscribeState(topic: Topic, scope: CoroutineScope): StateFlow<String?> = subscribe(topic, scope) {
+        MutableStateFlow(
+            null
+        )
+    } as StateFlow<String?>
+
+    suspend fun subscribe(topic: Topic, scope: CoroutineScope, getFlow: () -> MutableSharedFlow<String?>): SharedFlow<String?> =
         suspendCoroutine { cont ->
             try {
                 if (subscriptions.containsKey(topic)) {
@@ -90,7 +99,7 @@ class PahoMqttClient(serverUri: String, clientId: String) : MqttClient {
                     return@suspendCoroutine
                 }
                 logger.info { "Subscribing to $topic" }
-                val flow = MutableSharedFlow<String>()
+                val flow = getFlow()
                 subscriptions[topic] = flow
                 client.subscribe(
                     arrayOf(MqttSubscription(topic)), null, object : MqttActionListener {

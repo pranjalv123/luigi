@@ -8,15 +8,15 @@ import kotlin.time.Duration
 import kotlin.time.DurationUnit
 
 /** https://www.zigbee2mqtt.io/devices/579573.html */
-class HueBulb(definition: Definition, client: MqttClient) : Device(definition, client), Light {
+class HueBulb(definition: Definition, client: MqttClient) : ZigbeeDevice(definition, client), Light {
     override val name = definition.name
     override val registration = LightRegistration.register(this)
 
     data class Definition(
         override val id: String,
         override val name: String,
-        override val location: Device.Definition.Location
-    ) : Device.Definition
+        override val location: ZigbeeDevice.Definition.Location
+    ) : ZigbeeDevice.Definition
 
 
     override suspend fun turnOn(transition: Duration) = setValues("state" to "ON", "transition" to transition.toString(DurationUnit.SECONDS, 3))

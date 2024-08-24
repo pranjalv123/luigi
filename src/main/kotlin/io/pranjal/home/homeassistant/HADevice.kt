@@ -3,6 +3,7 @@ package io.pranjal.home.homeassistant
 import io.pranjal.home.lights.LightsGroup
 import io.pranjal.mqtt.MqttClient
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
@@ -25,7 +26,7 @@ interface HADevice<S> {
     suspend fun homeAssistantListener(mqttClient: MqttClient, scope: CoroutineScope) {
         sendDiscoveryMessage(mqttClient)
         val topic = "${haConfig.topic}/set"
-        mqttClient.subscribe(topic, scope).collect {
+        mqttClient.subscribe(topic, scope).filterNotNull().collect {
             val state = Json.decodeFromString(haConfig.stateSerializer, it)
             handleStateUpdate(state)
         }

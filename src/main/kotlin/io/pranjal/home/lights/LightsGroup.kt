@@ -51,7 +51,7 @@ class LightsGroup(
         delay(10)
         val internalState = sub.value
 
-        logger.info { "Read internal state $internalState" }
+        logger.info { "Read internal state for $name: $internalState" }
         if (internalState != null) {
             try {
                 _state = Json.decodeFromString(State.serializer(), internalState)

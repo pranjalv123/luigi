@@ -26,12 +26,11 @@ fun standardTempSchedule(clock: Clock): Schedule<ColorTemperature> {
 fun downstairsBrightnessSchedule(clock: Clock): Schedule<Brightness> {
     return listOf(
         "00:00" to 0.05,
-        "07:00" to 0.05,
-        "08:00" to 0.2,
-        "09:00" to 0.5,
-        "10:00" to 1.0,
-        "17:00" to 1.0,
-        "19:00" to 0.7,
+        "05:00" to 0.05,
+        "06:00" to 0.2,
+        "06:30" to 0.5,
+        "07:30" to 1.0,
+        "19:00" to 1.0,
         "21:00" to 0.2,
         "23:59" to 0.05,
     ).map { (time, brightness) ->

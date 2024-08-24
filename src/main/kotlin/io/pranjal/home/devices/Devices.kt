@@ -1,12 +1,11 @@
 package io.pranjal.home.devices
 
-import io.pranjal.home.devices.Device.Definition.Location.KITCHEN
-import io.pranjal.home.devices.Device.Definition.Location.MASTER_BATHROOM
+import io.pranjal.home.devices.ZigbeeDevice.Definition.Location.KITCHEN
+import io.pranjal.home.devices.ZigbeeDevice.Definition.Location.MASTER_BATHROOM
 import io.pranjal.home.devices.makes.HueBulb
 import io.pranjal.home.devices.makes.HueDimmer
 import io.pranjal.home.devices.makes.InovelliSwitch
 import io.pranjal.mqtt.MqttClient
-import kotlin.time.Duration.Companion.seconds
 
 class Devices(mqttClient: MqttClient) {
     object Definitions {
@@ -30,7 +29,7 @@ class Devices(mqttClient: MqttClient) {
             HueBulb.Definition(
                 id,
                 "dining_room_light_${i}",
-                Device.Definition.Location.DINING_ROOM
+                ZigbeeDevice.Definition.Location.DINING_ROOM
             )
         }
 
@@ -45,7 +44,7 @@ class Devices(mqttClient: MqttClient) {
             HueBulb.Definition(
                 id,
                 "living_room_light_${i}",
-                Device.Definition.Location.LIVING_ROOM
+                ZigbeeDevice.Definition.Location.LIVING_ROOM
             )
         }
 
@@ -59,7 +58,7 @@ class Devices(mqttClient: MqttClient) {
             "0x001788010db60dd9",
             "0x001788010db60916",
             "0x001788010db60976",
-        ).map { id -> HueBulb.Definition(id, "master_bedroom_light_${id}", Device.Definition.Location.MASTER_BEDROOM) }
+        ).map { id -> HueBulb.Definition(id, "master_bedroom_light_${id}", ZigbeeDevice.Definition.Location.MASTER_BEDROOM) }
 
         val masterBathroomLights = listOf(
             "0x001788010db6035c",
@@ -70,7 +69,7 @@ class Devices(mqttClient: MqttClient) {
             "0x001788010db60e3a",
             "0x001788010db61d0a",
             "0x001788010db5e845"
-        ).map { id -> HueBulb.Definition(id, "sunroom_light_${id}", Device.Definition.Location.SUNROOM) }
+        ).map { id -> HueBulb.Definition(id, "sunroom_light_${id}", ZigbeeDevice.Definition.Location.SUNROOM) }
 
         val lights =
             kitchenLights + masterBedroomLights + sunroomLights + masterBathroomLights + walkinClosetLights + livingRoomLights + diningRoomLights
@@ -82,11 +81,11 @@ class Devices(mqttClient: MqttClient) {
 
         val sunroomSwitch = InovelliSwitch.Definition(
             "0x943469fffe05d0ab", "sunroom_switch",
-            Device.Definition.Location.SUNROOM
+            ZigbeeDevice.Definition.Location.SUNROOM
         )
         val masterBedroomSwitch = InovelliSwitch.Definition(
             "0x943469fffe05cce6", "master_bedroom_switch",
-            Device.Definition.Location.MASTER_BEDROOM
+            ZigbeeDevice.Definition.Location.MASTER_BEDROOM
         )
         val walkInClosetSwitch =
             InovelliSwitch.Definition("0x943469fffe05d0ae", "walk_in_closet_switch", MASTER_BATHROOM)

@@ -1,7 +1,7 @@
 package io.pranjal.home.devices.makes
 
 import io.github.oshai.kotlinlogging.KotlinLogging
-import io.pranjal.home.devices.Device
+import io.pranjal.home.devices.ZigbeeDevice
 import io.pranjal.home.devices.Switch
 import io.pranjal.mqtt.MqttClient
 import kotlinx.coroutines.CoroutineScope
@@ -16,13 +16,13 @@ import kotlinx.coroutines.flow.*
  *
  * */
 @OptIn(FlowPreview::class)
-class HueDimmer(definition: Definition, client: MqttClient) : Device(definition, client), Switch {
+class HueDimmer(definition: Definition, client: MqttClient) : ZigbeeDevice(definition, client), Switch {
 
     data class Definition(
         override val id: String,
         override val name: String,
-        override val location: Device.Definition.Location
-    ) : Device.Definition
+        override val location: ZigbeeDevice.Definition.Location
+    ) : ZigbeeDevice.Definition
 
     private val logger = KotlinLogging.logger("HueDimmer ${definition.name} [${definition.id}]")
 

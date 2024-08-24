@@ -5,12 +5,10 @@ import io.pranjal.mqtt.MqttClient
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.runBlocking
-import kotlinx.serialization.json.Json
-import kotlinx.serialization.encodeToString
 
 private val logger = KotlinLogging.logger {}
 
-open class Device(val definition: Definition, val client: MqttClient) {
+open class ZigbeeDevice(val definition: Definition, val client: MqttClient) {
 
     interface Definition {
         val id: String
