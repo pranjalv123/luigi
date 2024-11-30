@@ -80,7 +80,7 @@ class Devices(mqttClient: MqttClient) {
         val smallBedroomLights = listOf(
             "0x001788010d87d95f",
             "0x001788010db5e8eb"
-        )
+        ).mapIndexed { i, id -> HueBulb.Definition(id, "small_bedroom_light_${i}", ZigbeeDevice.Definition.Location.SUNROOM) }
 
         val lights =
             kitchenLights + masterBedroomLights + sunroomLights + masterBathroomLights + walkinClosetLights + livingRoomLights + diningRoomLights + smallBedroomLights
@@ -107,7 +107,7 @@ class Devices(mqttClient: MqttClient) {
         val walkInClosetSwitch =
             InovelliSwitch.Definition("0x943469fffe05d0ae", "walk_in_closet_switch", MASTER_BATHROOM)
 
-        val definitions = lights + hueDimmers + listOf(sunroomSwitch, masterBedroomSwitch, walkInClosetSwitch)
+        val definitions = lights + hueDimmers + listOf(sunroomSwitch, masterBedroomSwitch, walkInClosetSwitch, smallBedroomSwitch)
     }
 
     val devices = Definitions.definitions.map { definition ->
@@ -150,7 +150,7 @@ class Devices(mqttClient: MqttClient) {
     }
 
     val smallBedroomLights = Definitions.smallBedroomLights.map {
-        byId[it] as HueBulb
+        byId[it.id] as HueBulb
     }
 
     val masterBedroomDimmer = byId[Definitions.masterBedroomSwitch.id] as InovelliSwitch
