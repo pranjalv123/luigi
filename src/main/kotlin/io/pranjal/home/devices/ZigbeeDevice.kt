@@ -26,7 +26,8 @@ open class ZigbeeDevice(val definition: Definition, val client: MqttClient) {
             MASTER_BATHROOM,
             BATHROOM,
             OUTSIDE,
-            DINING_ROOM
+            DINING_ROOM,
+            SMALL_BEDROOM
         }
     }
 

@@ -58,7 +58,13 @@ class Devices(mqttClient: MqttClient) {
             "0x001788010db60dd9",
             "0x001788010db60916",
             "0x001788010db60976",
-        ).mapIndexed { i, id -> HueBulb.Definition(id, "master_bedroom_light_${i}", ZigbeeDevice.Definition.Location.MASTER_BEDROOM) }
+        ).mapIndexed { i, id ->
+            HueBulb.Definition(
+                id,
+                "master_bedroom_light_${i}",
+                ZigbeeDevice.Definition.Location.MASTER_BEDROOM
+            )
+        }
 
         val masterBathroomLights = listOf(
             "0x001788010db6035c",
@@ -71,8 +77,13 @@ class Devices(mqttClient: MqttClient) {
             "0x001788010db5e845"
         ).mapIndexed { i, id -> HueBulb.Definition(id, "sunroom_light_${i}", ZigbeeDevice.Definition.Location.SUNROOM) }
 
+        val smallBedroomLights = listOf(
+            "0x001788010d87d95f",
+            "0x001788010db5e8eb"
+        )
+
         val lights =
-            kitchenLights + masterBedroomLights + sunroomLights + masterBathroomLights + walkinClosetLights + livingRoomLights + diningRoomLights
+            kitchenLights + masterBedroomLights + sunroomLights + masterBathroomLights + walkinClosetLights + livingRoomLights + diningRoomLights + smallBedroomLights
 
         val hueDimmerIds = listOf("0x001788010b78fa91")
 
@@ -87,6 +98,12 @@ class Devices(mqttClient: MqttClient) {
             "0x943469fffe05cce6", "master_bedroom_switch",
             ZigbeeDevice.Definition.Location.MASTER_BEDROOM
         )
+
+        val smallBedroomSwitch = InovelliSwitch.Definition(
+            "0x385b44fffeee1841", "small_bedroom_switch",
+            ZigbeeDevice.Definition.Location.SMALL_BEDROOM
+        )
+
         val walkInClosetSwitch =
             InovelliSwitch.Definition("0x943469fffe05d0ae", "walk_in_closet_switch", MASTER_BATHROOM)
 
@@ -132,9 +149,14 @@ class Devices(mqttClient: MqttClient) {
         byId[it.id] as HueBulb
     }
 
+    val smallBedroomLights = Definitions.smallBedroomLights.map {
+        byId[it] as HueBulb
+    }
+
     val masterBedroomDimmer = byId[Definitions.masterBedroomSwitch.id] as InovelliSwitch
     val sunroomDimmer = byId[Definitions.sunroomSwitch.id] as InovelliSwitch
     val walkInClosetDimmer = byId[Definitions.walkInClosetSwitch.id] as InovelliSwitch
+    val smallBedroomDimmer = byId[Definitions.smallBedroomSwitch.id] as InovelliSwitch
 
 
     //val lights = kitchenLights + masterBedroomLights + sunroomLights + masterBathroomLights + walkInClosetLights

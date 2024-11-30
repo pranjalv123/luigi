@@ -96,6 +96,16 @@ fun CoroutineScope.prodLights(devices: Devices, clock: Clock, mqttClient: MqttCl
         brightnessSchedule = bedroomBrightnessSchedule(clock),
         clock = clock,
         mqttClient = mqttClient
+    ),
+    LightsGroup(
+        this,
+        name = "SmallBedroom",
+        lights = devices.smallBedroomLights,
+        switches = listOf(devices.smallBedroomDimmer),
+        colorTemperatureSchedule = standardTempSchedule(clock),
+        brightnessSchedule = bedroomBrightnessSchedule(clock),
+        clock = clock,
+        mqttClient = mqttClient
     )
 )
 
