@@ -14,6 +14,7 @@ import kotlin.math.roundToInt
 
 object Levels {
     val renard10 = listOf(0.01, 0.016, 0.025, 0.04, 0.063, 0.1, 0.16, 0.25, 0.4, 0.63, 1.0)
+    val linear10 = (0..10).map { it / 10.0 }
 }
 
 @Serializable(with = Brightness.Serializer::class)

@@ -12,7 +12,7 @@ import kotlin.time.Duration.Companion.hours
 data class BaseState(
     val brightness: Schedule<Brightness>,
     val colorTemperature: Schedule<ColorTemperature>,
-    val brightnessLevels: List<Double> = Levels.renard10,
+    val brightnessLevels: List<Double> = Levels.linear10,
     val dimmingLifetime: Duration = 4.hours,
     @Transient
     val clock: Clock = Clock.System
@@ -97,42 +97,12 @@ sealed class State {
                 }
 
                 Input.Reset -> Default(baseState)
-                Input.Toggle -> DimmedOff(this, baseState)
-                Input.TurnOff -> DimmedOff(this, baseState)
+                Input.Toggle -> Off(baseState)
+                Input.TurnOff -> Off( baseState)
 
                 is Input.Custom -> Custom(input.colorTemperature, input.brightness, baseState)
             }
 
-    }
-
-    @Serializable
-    data class DimmedOff(
-        val dimmed: Dimmed,
-        override val baseState: BaseState,
-        val startTime: Instant = baseState.clock.now()
-    ) :
-        State() {
-
-        override fun transition(input: Input) =
-            when (input) {
-                is Input.TurnOn, is Input.Toggle -> {
-                    if ((baseState.clock.now() - startTime) > baseState.dimmingLifetime) {
-                        Default(baseState)
-                    } else {
-                        dimmed
-                    }
-                }
-
-                is Input.IncreaseBrightness ->
-                    Brightened(Brightness.MAX, baseState)
-
-                Input.DecreaseBrightness -> this
-                Input.Reset -> Off(baseState)
-                Input.TurnOff -> this
-                is Input.Custom -> Custom(input.colorTemperature, input.brightness, baseState)
-            }
-
-        override val brightness = Brightness.OFF
     }
 
     @Serializable
