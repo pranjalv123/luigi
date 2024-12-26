@@ -86,13 +86,13 @@ class Devices(mqttClient: MqttClient) {
             "0x001788010db6141e",
             "0x001788010db5e593",
             "0x001788010db60388",
-            "0x001788010db5e5b8\n"
+            "0x001788010db5e5b8"
         ).mapIndexed { i, id -> HueBulb.Definition(id, "office_light_${i}", ZigbeeDevice.Definition.Location.SUNROOM) }
 
 
         val lights =
             kitchenLights + masterBedroomLights + sunroomLights + masterBathroomLights + walkinClosetLights +
-                    livingRoomLights + diningRoomLights + smallBedroomLights
+                    livingRoomLights + diningRoomLights + smallBedroomLights + officeLights
 
         val hueDimmerIds = listOf("0x001788010b78fa91")
 

@@ -12,6 +12,9 @@ data class LightsState(
     val state: StateEnum? = null,
     @SerialName("color_mode")
     val colorMode: String? = null,
+    val transition: Int? = null,
+    val color: Color? = null,
+    val effect: String? = null,
 )  {
 
     enum class StateEnum {
@@ -20,3 +23,16 @@ data class LightsState(
     }
 
 }
+
+@Serializable
+data class Color(
+    val r: Int?,
+    val g: Int?,
+    val b: Int?,
+    val c: Int?,
+    val w: Int?,
+    val x: Float?,
+    val y: Float?,
+    val h: Float?,
+    val s: Float?,
+)

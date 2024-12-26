@@ -17,6 +17,7 @@ import io.pranjal.mqtt.PahoMqttClient
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.runBlocking
 import kotlinx.datetime.Clock
+import org.eclipse.paho.mqttv5.common.MqttException
 import kotlin.concurrent.thread
 import kotlin.system.exitProcess
 
@@ -142,12 +143,12 @@ fun CoroutineScope.devLights(devices: Devices, clock: Clock, mqttClient: MqttCli
     )
 )
 
-fun launchLightsThread(clock: Clock) = thread {
+fun launchLightsThread(clock: Clock): Thread = thread {
+    val mqttClient: MqttClient = when (environment) {
+        Environment.PRODUCTION -> PahoMqttClient("tcp://localhost:1883", "luigi")
+        Environment.DEVELOPMENT -> MockMqttClient(log = true)
+    }
     try {
-        val mqttClient: MqttClient = when (environment) {
-            Environment.PRODUCTION -> PahoMqttClient("tcp://localhost:1883", "luigi")
-            Environment.DEVELOPMENT -> MockMqttClient(log = true)
-        }
         runBlocking {
             mqttClient.connect()
             logger.info { "Connected to MQTT; initializing lights" }
@@ -158,6 +159,16 @@ fun launchLightsThread(clock: Clock) = thread {
             }
             logger.info { "Initialized lights" }
         }
+    } catch (mqttException: MqttException) {
+        logger.error(mqttException) { "MQTT error" }
+        try {
+            runBlocking {
+                mqttClient.disconnect()
+            }
+        } catch (e: Exception) {
+            logger.error(e) { "Failed to disconnect from MQTT" }
+        }
+        launchLightsThread(clock)
     } catch (e: Exception) {
         logger.error(e) { "Device management thread failure" }
         exitProcess(1)
