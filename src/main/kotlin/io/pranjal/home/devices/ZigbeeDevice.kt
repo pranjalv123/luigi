@@ -32,6 +32,12 @@ open class ZigbeeDevice(val definition: Definition, val client: MqttClient) {
         }
     }
 
+    data class GenericDefinition(
+        override val id: String,
+        override val name: String,
+        override val location: Definition.Location
+    ) : Definition
+
     val topicSet: String = "zigbee2mqtt/${definition.name}/set"
     val topicAction: String = "zigbee2mqtt/${definition.name}/action"
 
