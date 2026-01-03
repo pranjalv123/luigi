@@ -124,7 +124,63 @@ class Devices(mqttClient: MqttClient) {
 
         val freezerSensor = ZigbeeDevice.GenericDefinition("0x00158d000a9747e0", "freezer_sensor", KITCHEN)
 
-        val definitions = lights + hueDimmers + listOf(sunroomSwitch, masterBedroomSwitch, walkInClosetSwitch, smallBedroomSwitch, officeSwitch) + freezerSensor
+        val smallBedroomCurtains =
+            listOf("0x0ceff6fffeaa1c2e", "0x4c97a1fffe279d92").mapIndexed {
+                i, id -> ZigbeeDevice.GenericDefinition(
+                    id = id,
+                    name = "small_bedroom_curtain_$i",
+                    location = Definition.Location.SMALL_BEDROOM,
+            )
+            }
+
+        val pantryCurtain = listOf(ZigbeeDevice.GenericDefinition(
+            id = "0x7c31fafffe3df31a",
+            name = "pantry_curtain",
+            location = Definition.Location.PANTRY,
+        ))
+
+
+        val livingRoomCurtains =
+            listOf("0xf0fd45fffef89df7", "0xf0fd45fffef80f02", "0xf0fd45fffef82aba").mapIndexed {
+                    i, id -> ZigbeeDevice.GenericDefinition(
+                id = id,
+                name = "living_room_curtain_$i",
+                location = Definition.Location.SMALL_BEDROOM,
+            )
+            }
+
+        val masterBedroomCurtains =
+            listOf("0x7c31fafffe3d694a", "0x7c31fafffe3dd3f8").mapIndexed {
+                i, id -> ZigbeeDevice.GenericDefinition(
+                    id = id,
+                    name = "master_bedroom_curtain_$i",
+                    location = Definition.Location.MASTER_BEDROOM,
+                )
+            }
+
+        val diningRoomCurtains =
+            listOf("0x7c31fafffe3d678b", "0xf0fd45fffef71721", "0xf0fd45fffef58e5b").mapIndexed {
+                    i, id -> ZigbeeDevice.GenericDefinition(
+                id = id,
+                name = "dining_room_curtain_$i",
+                location = Definition.Location.DINING_ROOM,
+            )
+            }
+
+
+
+
+
+
+        val definitions = lights +
+                hueDimmers +
+                listOf(sunroomSwitch, masterBedroomSwitch, walkInClosetSwitch, smallBedroomSwitch, officeSwitch) +
+                freezerSensor +
+                smallBedroomCurtains +
+                pantryCurtain +
+                livingRoomCurtains +
+                masterBedroomCurtains +
+                diningRoomCurtains
     }
 
     val devices = Definitions.definitions.map { definition ->

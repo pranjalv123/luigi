@@ -130,7 +130,7 @@ class PahoMqttClient(serverUri: String, clientId: String) : MqttClient {
     override suspend fun publish(topic: String, message: String, qos: Int, retained: Boolean) =
         suspendCoroutine<Unit> { cont ->
             try {
-                logger.info { "Publishing to $topic: $message" }
+                logger.debug { "Publishing to $topic: $message" }
                 client.publish(
                     topic,
                     MqttMessage(message.toByteArray(), qos, retained, MqttProperties()),
