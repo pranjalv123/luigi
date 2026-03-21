@@ -52,6 +52,11 @@ open class ZigbeeDevice(val definition: Definition, val client: MqttClient) {
         }
     }
 
+    suspend fun reInitialize() {
+        rename()
+        initialize()
+    }
+
     suspend fun rename() {
         logger.info { "Renaming device ${definition.id} to ${definition.name}" }
         client.publish(

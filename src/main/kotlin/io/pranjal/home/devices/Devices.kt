@@ -1,5 +1,6 @@
 package io.pranjal.home.devices
 
+import io.github.oshai.kotlinlogging.KotlinLogging
 import io.pranjal.home.devices.ZigbeeDevice.Definition
 import io.pranjal.home.devices.ZigbeeDevice.Definition.Location.KITCHEN
 import io.pranjal.home.devices.ZigbeeDevice.Definition.Location.MASTER_BATHROOM
@@ -7,8 +8,13 @@ import io.pranjal.home.devices.makes.HueBulb
 import io.pranjal.home.devices.makes.HueDimmer
 import io.pranjal.home.devices.makes.InovelliSwitch
 import io.pranjal.mqtt.MqttClient
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.flow.filter
+import kotlinx.coroutines.launch
 
-class Devices(mqttClient: MqttClient) {
+private val logger = KotlinLogging.logger {}
+
+class Devices(private val mqttClient: MqttClient) {
     object Definitions {
         val kitchenLights = listOf(
             "0x001788010d87d7cb",
@@ -122,7 +128,10 @@ class Devices(mqttClient: MqttClient) {
         val walkInClosetSwitch =
             InovelliSwitch.Definition("0x943469fffe05d0ae", "walk_in_closet_switch", MASTER_BATHROOM)
 
-        val freezerSensor = ZigbeeDevice.GenericDefinition("0x00158d000a9747e0", "freezer_sensor", KITCHEN)
+        val temperatureSensors = listOf(
+            ZigbeeDevice.GenericDefinition("0x00158d000a9747e0", "freezer_sensor", KITCHEN),
+            ZigbeeDevice.GenericDefinition("0x00158d000968662f", "small_bedroom_temp", Definition.Location.SMALL_BEDROOM),
+        )
 
         val smallBedroomCurtains =
             listOf("0x0ceff6fffeaa1c2e", "0x4c97a1fffe279d92").mapIndexed {
@@ -175,7 +184,7 @@ class Devices(mqttClient: MqttClient) {
         val definitions = lights +
                 hueDimmers +
                 listOf(sunroomSwitch, masterBedroomSwitch, walkInClosetSwitch, smallBedroomSwitch, officeSwitch) +
-                freezerSensor +
+                temperatureSensors +
                 smallBedroomCurtains +
                 pantryCurtain +
                 livingRoomCurtains +
@@ -237,9 +246,24 @@ class Devices(mqttClient: MqttClient) {
     val smallBedroomDimmer = byId[Definitions.smallBedroomSwitch.id] as InovelliSwitch
     val officeDimmer = byId[Definitions.officeSwitch.id] as InovelliSwitch
 
-    val freezerSensor = byId[Definitions.freezerSensor.id] as ZigbeeDevice
 
 
     //val lights = kitchenLights + masterBedroomLights + sunroomLights + masterBathroomLights + walkInClosetLights
 
+    fun watchForRestart(scope: CoroutineScope) {
+        scope.launch {
+            mqttClient.subscribe("zigbee2mqtt/bridge/state", scope)
+                .filter { it?.contains("online") == true }
+                .collect {
+                    logger.info { "Zigbee2MQTT came online, re-initializing devices" }
+                    devices.forEach { device ->
+                        try {
+                            device.reInitialize()
+                        } catch (e: Exception) {
+                            logger.error(e) { "Failed to re-initialize device ${device.definition.name}" }
+                        }
+                    }
+                }
+        }
+    }
 }

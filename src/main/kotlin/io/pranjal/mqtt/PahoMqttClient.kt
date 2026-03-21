@@ -104,6 +104,7 @@ class PahoMqttClient(serverUri: String, clientId: String) : MqttClient {
                 client.subscribe(
                     arrayOf(MqttSubscription(topic)), null, object : MqttActionListener {
                         override fun onSuccess(asyncActionToken: IMqttToken?) {
+                            logger.info { "Subscribed to $topic" }
                             cont.resume(flow)
                         }
 

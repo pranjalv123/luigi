@@ -153,6 +153,7 @@ fun launchLightsThread(clock: Clock): Thread = thread {
             mqttClient.connect()
             logger.info { "Connected to MQTT; initializing lights" }
             val devices = Devices(mqttClient)
+            devices.watchForRestart(this)
             when (environment) {
                 Environment.PRODUCTION -> prodLights(devices, clock, mqttClient)
                 Environment.DEVELOPMENT -> devLights(devices, clock, mqttClient)
