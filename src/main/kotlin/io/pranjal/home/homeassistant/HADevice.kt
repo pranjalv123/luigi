@@ -1,5 +1,6 @@
 package io.pranjal.home.homeassistant
 
+import io.github.oshai.kotlinlogging.KotlinLogging
 import io.pranjal.home.lights.LightsGroup
 import io.pranjal.mqtt.MqttClient
 import kotlinx.coroutines.CoroutineScope
@@ -10,6 +11,9 @@ import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.*
 import kotlinx.serialization.serializer
 import kotlin.reflect.KClass
+
+private val logger = KotlinLogging.logger {}
+private val lenientJson = Json { ignoreUnknownKeys = true }
 
 data class HaConfig<S> (
     val topic: String,
@@ -27,14 +31,16 @@ interface HADevice<S> {
         sendDiscoveryMessage(mqttClient)
         val topic = "${haConfig.topic}/set"
         mqttClient.subscribe(topic, scope).filterNotNull().collect {
-            val state = Json.decodeFromString(haConfig.stateSerializer, it)
-            handleStateUpdate(state)
+            try {
+                val state = lenientJson.decodeFromString(haConfig.stateSerializer, it)
+                handleStateUpdate(state)
+            } catch (e: Exception) {
+                logger.error(e) { "Failed to handle HA state update: $it" }
+            }
         }
     }
     suspend fun publishState(mqttClient: MqttClient) {
-        println(currentHaState())
-        println(Json.encodeToString(haConfig.stateSerializer, currentHaState()))
-        mqttClient.publish("${haConfig.topic}/state", Json.encodeToString(haConfig.stateSerializer, currentHaState()), retained = true)
+        mqttClient.publish("${haConfig.topic}/state", lenientJson.encodeToString(haConfig.stateSerializer, currentHaState()), retained = true)
     }
     suspend fun sendDiscoveryMessage(mqttClient: MqttClient) {
         val discoveryPrefix = "homeassistant"

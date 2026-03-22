@@ -26,13 +26,13 @@ data class LightsState(
 
 @Serializable
 data class Color(
-    val r: Int?,
-    val g: Int?,
-    val b: Int?,
-    val c: Int?,
-    val w: Int?,
-    val x: Float?,
-    val y: Float?,
-    val h: Float?,
-    val s: Float?,
+    val r: Int? = null,
+    val g: Int? = null,
+    val b: Int? = null,
+    val c: Int? = null,
+    val w: Int? = null,
+    val x: Float? = null,
+    val y: Float? = null,
+    val h: Float? = null,
+    val s: Float? = null,
 )
