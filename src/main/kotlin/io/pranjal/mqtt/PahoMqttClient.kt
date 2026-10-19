@@ -14,6 +14,9 @@ import org.eclipse.paho.mqttv5.client.IMqttMessageListener
 import org.eclipse.paho.mqttv5.client.IMqttToken
 import org.eclipse.paho.mqttv5.client.MqttActionListener
 import org.eclipse.paho.mqttv5.client.MqttAsyncClient
+import org.eclipse.paho.mqttv5.client.MqttCallback
+import org.eclipse.paho.mqttv5.client.MqttDisconnectResponse
+import org.eclipse.paho.mqttv5.common.MqttException
 import org.eclipse.paho.mqttv5.common.MqttMessage
 import org.eclipse.paho.mqttv5.common.MqttSubscription
 import org.eclipse.paho.mqttv5.common.packet.MqttProperties
@@ -21,6 +24,7 @@ import java.nio.charset.Charset
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
 import kotlin.coroutines.suspendCoroutine
+import kotlin.system.exitProcess
 
 private val logger = KotlinLogging.logger {}
 
@@ -32,7 +36,39 @@ class PahoMqttClient(serverUri: String, clientId: String) : MqttClient {
     val client: IMqttAsyncClient = MqttAsyncClient(serverUri, clientId)
     var state = State.DISCONNECTED
 
+    // Set by disconnect(), so a deliberate disconnect isn't treated as a lost connection.
+    @Volatile
+    private var closing = false
+
     val subscriptions = mutableMapOf<Topic, SharedFlow<String?>>()
+
+    init {
+        // A dropped connection used to go unnoticed: no automatic reconnect,
+        // every publish failed with "Client is not connected", and the process
+        // stayed up, so Nomad saw a healthy task while the lights were dead
+        // (mosquitto or its Connect sidecar restarting was enough). Exit
+        // instead; Nomad restarts the task, which reconnects, resubscribes and
+        // re-initializes every device. Paho's automaticReconnect isn't enough
+        // on its own: with a clean session the subscriptions are gone after a
+        // reconnect.
+        client.setCallback(object : MqttCallback {
+            override fun disconnected(disconnectResponse: MqttDisconnectResponse?) {
+                state = State.DISCONNECTED
+                if (closing) return
+                logger.error { "MQTT connection lost (${disconnectResponse?.reasonString ?: disconnectResponse?.exception?.message}); exiting so Nomad restarts us" }
+                exitProcess(1)
+            }
+
+            override fun mqttErrorOccurred(exception: MqttException?) {
+                logger.error(exception) { "MQTT error" }
+            }
+
+            override fun messageArrived(topic: String?, message: MqttMessage?) {}
+            override fun deliveryComplete(token: IMqttToken?) {}
+            override fun connectComplete(reconnect: Boolean, serverURI: String?) {}
+            override fun authPacketArrived(reasonCode: Int, properties: MqttProperties?) {}
+        })
+    }
 
     override suspend fun connect() {
         try {
@@ -60,6 +96,10 @@ class PahoMqttClient(serverUri: String, clientId: String) : MqttClient {
         } catch (e: Throwable) {
             state = State.DISCONNECTED
             logger.error(e) { "Failed to connect to MQTT" }
+            // Rethrow: swallowing this left the client disconnected for good,
+            // with every later subscribe/publish failing. launchLightsThread
+            // retries on MqttException.
+            throw e
         }
         while (state == State.CONNECTING) {
             logger.info { "Waiting for MQTT connection" }
@@ -70,6 +110,7 @@ class PahoMqttClient(serverUri: String, clientId: String) : MqttClient {
 
     override suspend fun disconnect() =
         suspendCoroutine { cont ->
+            closing = true
             client.disconnect(null, object : MqttActionListener {
                 override fun onSuccess(asyncActionToken: IMqttToken?) {
                     state = State.DISCONNECTED

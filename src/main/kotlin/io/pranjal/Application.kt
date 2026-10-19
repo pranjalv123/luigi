@@ -169,6 +169,9 @@ fun launchLightsThread(clock: Clock): Thread = thread {
         } catch (e: Exception) {
             logger.error(e) { "Failed to disconnect from MQTT" }
         }
+        // Connect failures now reach here (they used to be swallowed); don't
+        // hammer a broker or sidecar that is still starting.
+        Thread.sleep(5_000)
         launchLightsThread(clock)
     } catch (e: Exception) {
         logger.error(e) { "Device management thread failure" }
