@@ -15,6 +15,8 @@ import io.pranjal.home.homeassistant.LightsState
 import io.pranjal.mqtt.MqttClient
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.filterNotNull
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.merge
 import kotlinx.datetime.Clock
 import kotlinx.serialization.json.Json
@@ -22,9 +24,11 @@ import kotlin.math.log
 import kotlin.math.round
 import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.minutes
+import kotlin.time.Duration.Companion.seconds
 
 private val lightsGroups = mutableListOf<LightsGroup>()
 private val logger = KotlinLogging.logger {}
+private val STATE_RESTORE_TIMEOUT = 10.seconds
 
 class LightsGroup(
     val scope: CoroutineScope,
@@ -48,9 +52,15 @@ class LightsGroup(
 
     private suspend fun initializeInternalState(scope: CoroutineScope) {
         val sub = mqttClient.subscribeState(internalStateTopic, scope)
-        delay(10)
-        val internalState = sub.value
+        // The broker delivers the retained state right after the subscribe, but
+        // "right after" can be well over the 10ms this used to wait (seen after
+        // a VM restart, 2026-10-24). Falling back to Off then turns every light
+        // in the group off on the first render.
+        val internalState = withTimeoutOrNull(STATE_RESTORE_TIMEOUT) { sub.filterNotNull().first() }
 
+        if (internalState == null) {
+            logger.warn { "No saved state for $name within $STATE_RESTORE_TIMEOUT; starting Off" }
+        }
         logger.info { "Read internal state for $name: $internalState" }
         if (internalState != null) {
             try {
