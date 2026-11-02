@@ -1,0 +1,57 @@
+# Build on PRs; on pushes to main, build the image, push it to the in-cluster
+# registry and restart Luigi. Runs on alfa's self-hosted runner (nix-config
+# ci.nix), which can reach the LAN-only registry and Nomad.
+#
+# alfa has no Docker daemon, so the image is assembled with crane: the shadow
+# jar as one layer on the same Corretto base the Dockerfile uses. The Dockerfile
+# and deploy.sh still work for a laptop deploy.
+name: deploy
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+env:
+  REG: docker-registry.svc.43mar.io
+  BASE: amazoncorretto:22-headless
+jobs:
+  build:
+    # Never run code from forks on the self-hosted runner.
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: [self-hosted, luigi]
+    timeout-minutes: 30
+    concurrency:
+      group: luigi-${{ github.ref }}
+      cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Build and test
+        run: ./gradlew --no-daemon build
+      - name: Push image
+        if: github.event_name != 'pull_request'
+        run: |
+          set -euo pipefail
+          export DOCKER_CONFIG=$RUNNER_TEMP/docker
+          install -d -m 700 "$DOCKER_CONFIG"
+          install -m 600 "$CREDENTIALS_DIRECTORY/registry-docker-config.json" "$DOCKER_CONFIG/config.json"
+          layer=$RUNNER_TEMP/layer
+          rm -rf "$layer" && mkdir "$layer"
+          cp build/libs/luigi-all.jar "$layer/luigi.jar"
+          tar -C "$layer" --owner=0 --group=0 --numeric-owner --mtime=@0 -cf "$RUNNER_TEMP/layer.tar" luigi.jar
+          img=$REG/luigi:$GITHUB_SHA
+          crane append --platform linux/amd64 -b "$BASE" -f "$RUNNER_TEMP/layer.tar" -t "$img"
+          # No entrypoint, so the base's Cmd (/bin/bash) must be replaced, not
+          # appended to: run exactly what the Dockerfile's ENTRYPOINT does.
+          crane mutate "$img" --cmd java,-jar,/luigi.jar -t "$img"
+          crane tag "$img" latest
+          echo "pushed $(crane digest "$img") as $img and :latest" | tee -a "$GITHUB_STEP_SUMMARY"
+          rm -rf "$DOCKER_CONFIG"
+      - name: Restart Luigi
+        if: github.event_name != 'pull_request'
+        run: |
+          set -euo pipefail
+          # The job's image is :latest with no digest, so a restart re-pulls it.
+          NOMAD_TOKEN=$(cat "$CREDENTIALS_DIRECTORY/nomad-token") \
+            nomad job restart -yes -on-error=fail -task luigi luigi
