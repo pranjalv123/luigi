@@ -272,7 +272,10 @@ class Devices(private val mqttClient: MqttClient) {
         }
         // A device that was reset and re-paired comes back with factory settings
         // (and its IEEE address as its name) while everything else stays up, so
-        // re-initialize it once its interview completes.
+        // re-initialize it once its interview completes. Also on an announce
+        // (power cycle, rejoin): a write that failed while the device was
+        // unreachable (2026-11-02: two switches after a coordinator restart) is
+        // otherwise never retried. Re-sending settings is harmless.
         scope.launch {
             mqttClient.subscribe("zigbee2mqtt/bridge/event", scope)
                 .filterNotNull()
@@ -283,12 +286,15 @@ class Devices(private val mqttClient: MqttClient) {
                         return@collect
                     }
                     val data = event["data"]?.jsonObject ?: return@collect
-                    if (event["type"]?.jsonPrimitive?.contentOrNull != "device_interview" ||
-                        data["status"]?.jsonPrimitive?.contentOrNull != "successful"
-                    ) return@collect
+                    val reason = when (event["type"]?.jsonPrimitive?.contentOrNull) {
+                        "device_interview" ->
+                            if (data["status"]?.jsonPrimitive?.contentOrNull == "successful") "re-paired" else null
+                        "device_announce" -> "announced"
+                        else -> null
+                    } ?: return@collect
                     val id = data["ieee_address"]?.jsonPrimitive?.contentOrNull ?: return@collect
                     val device = byId[id] ?: return@collect
-                    logger.info { "${device.definition.name} re-paired, re-initializing" }
+                    logger.info { "${device.definition.name} $reason, re-initializing" }
                     try {
                         device.reInitialize()
                     } catch (e: Exception) {
