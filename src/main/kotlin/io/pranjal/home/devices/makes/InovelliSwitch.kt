@@ -38,10 +38,20 @@ class InovelliSwitch(definition: Definition, client: MqttClient) : ZigbeeDevice(
         setValue("buttonDelay", value)
     }
 
+    /** The LED bar stays dark whether the load is on or off. Each of the seven LEDs
+     * is reset to 101 ("follow the global setting") so a leftover per-LED override
+     * can't keep one lit. */
+    suspend fun turnOffLeds() {
+        val perLed = (1..7).flatMap { n ->
+            listOf("defaultLed${n}IntensityWhenOn" to 101, "defaultLed${n}IntensityWhenOff" to 101)
+        }
+        setNumbers(mapOf("ledIntensityWhenOn" to 0, "ledIntensityWhenOff" to 0) + perLed)
+    }
+
     override suspend fun initialize() {
         setSmartbulbMode()
         setButtonDelay("0ms")
-
+        turnOffLeds()
     }
 
     override suspend fun turnOn(scope: CoroutineScope): Flow<Unit> =
