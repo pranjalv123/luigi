@@ -78,6 +78,11 @@ suspend fun setValues(values: Map<String, String>) {
     client.publish(topicSet, values.map { (key, value) -> "\"$key\": \"$value\"" }.joinToString(",", "{", "}"))
 }
 
+/** Numeric settings (e.g. LED intensity) must be sent as JSON numbers, not strings. */
+suspend fun setNumbers(values: Map<String, Int>) {
+    client.publish(topicSet, buildJsonObject { values.forEach { (key, value) -> put(key, value) } }.toString())
+}
+
 suspend fun onAction(action: String, scope: CoroutineScope) =
     client.subscribe(topicAction, scope).filter { it == action }
         .onEach { logger.info { "Got action $action: $it" } }
