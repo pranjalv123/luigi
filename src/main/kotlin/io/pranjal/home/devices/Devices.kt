@@ -10,7 +10,12 @@ import io.pranjal.home.devices.makes.InovelliSwitch
 import io.pranjal.mqtt.MqttClient
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.filter
+import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.launch
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.contentOrNull
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
 
 private val logger = KotlinLogging.logger {}
 
@@ -262,6 +267,32 @@ class Devices(private val mqttClient: MqttClient) {
                         } catch (e: Exception) {
                             logger.error(e) { "Failed to re-initialize device ${device.definition.name}" }
                         }
+                    }
+                }
+        }
+        // A device that was reset and re-paired comes back with factory settings
+        // (and its IEEE address as its name) while everything else stays up, so
+        // re-initialize it once its interview completes.
+        scope.launch {
+            mqttClient.subscribe("zigbee2mqtt/bridge/event", scope)
+                .filterNotNull()
+                .collect { payload ->
+                    val event = try {
+                        Json.parseToJsonElement(payload).jsonObject
+                    } catch (e: Exception) {
+                        return@collect
+                    }
+                    val data = event["data"]?.jsonObject ?: return@collect
+                    if (event["type"]?.jsonPrimitive?.contentOrNull != "device_interview" ||
+                        data["status"]?.jsonPrimitive?.contentOrNull != "successful"
+                    ) return@collect
+                    val id = data["ieee_address"]?.jsonPrimitive?.contentOrNull ?: return@collect
+                    val device = byId[id] ?: return@collect
+                    logger.info { "${device.definition.name} re-paired, re-initializing" }
+                    try {
+                        device.reInitialize()
+                    } catch (e: Exception) {
+                        logger.error(e) { "Failed to re-initialize device ${device.definition.name}" }
                     }
                 }
         }
